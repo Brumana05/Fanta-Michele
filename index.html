@@ -25,7 +25,7 @@ table{border-collapse:collapse;width:100%;font-size:13px;background:#fff}th,td{p
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script>
-const V='1.06',K='osm_v1',$=q=>document.querySelector(q),p2=n=>String(n).padStart(2,'0'),uid=()=>Math.random().toString(36).slice(2,9);
+const V='1.07',K='osm_v1',$=q=>document.querySelector(q),p2=n=>String(n).padStart(2,'0'),uid=()=>Math.random().toString(36).slice(2,9);
 const e=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const def=()=>({team:{name:'Oratorio San Michele',logo:''},players:[],events:[],users:[],votes:{}});
 let S=def();
@@ -104,7 +104,7 @@ function fanta(ev,id){const s=ev.stats?.[id];if(!s||s.vote===undefined||s.vote==
 if(ev.lineup.slots[0]===id){v-=(s.conc||0);v+=3*(s.pen||0);if(!s.conc)v+=1}return v}
 /* FANTA */
 const rep=(n,i)=>n>3?i.repeat(3)+'+':i.repeat(n);
-const icons=s=>(s.g?rep(s.g,'⚽'):'')+(s.a?rep(s.a,'🦶'):'')+(s.pen?rep(s.pen,'🧤'):'')+(s.pm?rep(s.pm,'🥅❌'):'');
+const icons=s=>(s.g?rep(s.g,'⚽'):'')+(s.a?rep(s.a,'🦶'):'')+(s.pen?rep(s.pen,'🧤'):'')+(s.pm?rep(s.pm,'🥅❌'):'')+(s.y?'🟨'.repeat(Math.min(s.y,2)):'')+(s.r?'🟥':'');
 function cell(ev,id,lb,bn){const p=pl(id);if(!p)return`<div class=pl><div class=c>👤</div><em>${lb}</em></div>`;const s=ev.stats?.[id]||{},played=!bn||s.in;
 const bd=s.out?'<b class=bd style="background:#c0392b">▼</b>':s.in?'<b class=bd style="background:#2e9e4f">▲</b>':'';
 return`<div class=pl><div class=c style="${p.photo?`background-image:url(${p.photo})`:''}">${p.photo?'':'👤'}${bd}</div><em>${e(p.last||p.name.split(' ')[0])} <span class=ic>${icons(s)}</span></em>${played?`<span class=v>${s.vote||'–'}</span> <span class=v style="background:#c99a1c;color:#fff">${fmt(fanta(ev,id))}</span>`:'<small class=ng>Non ha giocato</small>'}</div>`}
@@ -112,7 +112,7 @@ function pitchHTML(ev){const rows=rowsOf(ev.lineup.mod);let o=0;const offs=rows.
 const pitch=rows.map((r,ri)=>ri).reverse().map(ri=>`<div class=pr>${rows[ri].map((lb,j)=>cell(ev,ev.lineup.slots[offs[ri]+j],lb,false)).join('')}</div>`).join('');
 const bn=(ev.lineup.bench||[]).filter(id=>pl(id));
 const svg=`<svg viewBox="0 0 100 150"><g fill=none stroke="#fff" stroke-width=".6" stroke-opacity=".85"><rect x=4 y=4 width=92 height=142 /><line x1=4 y1=75 x2=96 y2=75 /><circle cx=50 cy=75 r=12 /><rect x=26 y=4 width=48 height=22 /><rect x=38 y=4 width=24 height=9 /><rect x=26 y=124 width=48 height=22 /><rect x=38 y=137 width=24 height=9 /><path d="M41 26 A12 12 0 0 0 59 26" /><path d="M41 124 A12 12 0 0 1 59 124" /></g><circle cx=50 cy=75 r=1 fill="#fff"/></svg>`;
-return`<div class=pitch>${svg}<div class=pf>${pitch}</div></div>${bn.length?`<div class=bench><div style="width:100%;text-align:center;color:#fff;font-weight:700">Panchina</div>${bn.map(id=>cell(ev,id,'',true)).join('')}</div>`:''}<p style="font-size:11px;color:#667">▲ subentrato · ▼ sostituito · ⚽ gol · 🦶 assist · 🧤 rigore parato · 🥅❌ rigore sbagliato</p>`}
+return`<div class=pitch>${svg}<div class=pf>${pitch}</div></div>${bn.length?`<div class=bench><div style="width:100%;text-align:center;color:#fff;font-weight:700">Panchina</div>${bn.map(id=>cell(ev,id,'',true)).join('')}</div>`:''}<p style="font-size:11px;color:#667">▲ subentrato · ▼ sostituito · ⚽ gol · 🦶 assist · 🧤 rigore parato · 🥅❌ rigore sbagliato · 🟨 ammonizione · 🟥 espulsione</p>`}
 function vFanta(){const evs=S.events.filter(x=>x.lineup?.slots.some(Boolean)).sort((a,b)=>b.date.localeCompare(a.date));if(!evs.length)return msg('Nessuna formazione ancora pubblicata.');
 const ev=evs.find(x=>x.id===fx)||evs[0];
 return`<select onchange="fx=this.value;R()">${evs.map(x=>`<option value=${x.id} ${x.id===ev.id?'selected':''}>${x.date.split('-').reverse().join('/')} · ${TYPES[x.type][0]} vs ${e(x.opp)}</option>`).join('')}</select><p style="font-size:12px;color:#667">Modulo ${ev.lineup.mod} · Bianco = voto base · Oro = Fantavoto</p>${pitchHTML(ev)}`}
