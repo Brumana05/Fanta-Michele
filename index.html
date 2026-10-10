@@ -25,7 +25,7 @@ table{border-collapse:collapse;width:100%;font-size:13px;background:#fff}th,td{p
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script>
-const V='1.07',K='osm_v1',$=q=>document.querySelector(q),p2=n=>String(n).padStart(2,'0'),uid=()=>Math.random().toString(36).slice(2,9);
+const V='1.08',K='osm_v1',$=q=>document.querySelector(q),p2=n=>String(n).padStart(2,'0'),uid=()=>Math.random().toString(36).slice(2,9);
 const e=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const def=()=>({team:{name:'Oratorio San Michele',logo:''},players:[],events:[],users:[],votes:{}});
 let S=def();
@@ -148,6 +148,12 @@ return L.map(x=>`<div class=card style="border-color:${TYPES[x.type][1]}"><b>${T
 function cv(id){M(`<img src="${S.events.find(x=>x.id===id).conv}" style="width:100%"><br><button class="b g" onclick="X()">Chiudi</button>`)}
 function cUp(id,inp){img(inp,1100,'jpeg',d=>{const x=S.events.find(y=>y.id===id);x.conv=d;try{save();R()}catch(er){delete x.conv;alert('Memoria piena: immagine troppo grande')}})}
 function cDel(id){if(confirm('Eliminare le convocazioni?')){delete S.events.find(x=>x.id===id).conv;save();R()}}
+let vx='';
+function vVot(){const evs=S.events.filter(x=>x.type!=='all'&&S.votes[x.id]).sort((a,b)=>b.date.localeCompare(a.date));if(!evs.length)return msg('Nessun voto ricevuto dagli utenti.');
+const one=evs.find(x=>x.id===vx),sel=one?[one]:evs;
+const rows=S.players.map(p=>{const vs=[],det=[];sel.forEach(ev=>{const U=S.votes[ev.id]||{};for(const u in U){const v=U[u][p.id];if(v===undefined||v==='')continue;det.push(`${e(u)}: <b>${e(v)}</b>`+(one?'':` <small>(${ev.date.split('-').reverse().slice(0,2).join('/')} vs ${e(ev.opp)})</small>`));const n=parseFloat(v);if(!isNaN(n))vs.push(n)}});return{p,vs,det}}).filter(r=>r.det.length).sort((a,b)=>a.p.name.localeCompare(b.p.name));
+return`<select onchange="vx=this.value;R()"><option value="">Tutte le partite (media generale)</option>${evs.map(x=>`<option value=${x.id} ${x.id===vx?'selected':''}>${x.date.split('-').reverse().join('/')} · ${TYPES[x.type][0]} vs ${e(x.opp)}</option>`).join('')}</select>
+<p style="font-size:12px;color:#667">Pareri degli utenti: il voto definitivo lo assegni tu dalla sezione Formazione.</p>`+(rows.map(r=>{const a=r.vs.length?r.vs.reduce((x,y)=>x+y,0)/r.vs.length:null,bv=one?one.stats?.[r.p.id]?.vote:'';return`<div class=card style="border-color:#1e3a8a"><div class=row><b style="flex:1">${e(r.p.name)}</b><span style="font-size:22px;font-weight:800;color:#1e3a8a">${a==null?'SV':a.toFixed(2).replace('.',',')}</span></div><small>${r.det.length} ${r.det.length===1?'voto':'voti'}${bv?' · tuo voto base: <b>'+e(bv)+'</b>':''}</small><details><summary style="font-size:13px">Chi ha votato</summary>${r.det.join('<br>')}</details></div>`}).join('')||msg('Nessun voto per questa partita.'))}
 let tr={y:new Date().getFullYear(),m:new Date().getMonth(),sel:[],t:'18:00',p:''};
 function vTrn(){const f=new Date(tr.y,tr.m,1),off=(f.getDay()+6)%7,dim=new Date(tr.y,tr.m+1,0).getDate();let c='';for(let i=0;i<off;i++)c+='<div></div>';
 for(let d=1;d<=dim;d++){const ds=`${tr.y}-${p2(tr.m+1)}-${p2(d)}`,on=tr.sel.includes(ds),has=S.events.some(x=>x.type==='all'&&x.date===ds);c+=`<div class=day style="${on?'background:#1e3a8a;color:#fff':''}" onclick="trT('${ds}')">${d}<div class=dots>${has?'<i style="background:#8a8f98"></i>':''}</div></div>`}
@@ -160,8 +166,8 @@ function trT(d){const i=tr.sel.indexOf(d);i<0?tr.sel.push(d):tr.sel.splice(i,1);
 function trM(n){tr.m+=n;if(tr.m<0){tr.m=11;tr.y--}if(tr.m>11){tr.m=0;tr.y++}R()}
 function trAdd(){if(!tr.sel.length)return alert('Seleziona almeno un giorno');const t=tr.t||'18:00';let n=0;tr.sel.forEach(d=>{if(!S.events.some(x=>x.type==='all'&&x.date===d&&x.time===t)){S.events.push({id:uid(),type:'all',date:d,time:t,opp:'',place:tr.p});n++}});tr.sel=[];save();R();alert(n+' allenamenti aggiunti al calendario')}
 function R(){pend=false;if(!me){$('#app').innerHTML=vAuth();return}
-const T=[['cal','📅','Calendario'],['val','⭐',admin()?'Formazione':'Valutazioni'],['fanta','🏆','Fanta Michele'],['stat','📊','Statistiche'],['conv','📋','Convocazioni']];if(admin())T.push(['trn','🏋️','Allenamenti'],['ana','👥','Anagrafe'],['usr','🔑','Utenti']);
-if(tab!=='home'&&!T.some(t=>t[0]===tab))tab='home';const views={cal:vCal,val:vVal,fanta:vFanta,stat:vStat,conv:vConv,trn:vTrn,ana:vAna,usr:vUsr},c=T.find(t=>t[0]===tab);
+const T=[['cal','📅','Calendario'],['val','⭐',admin()?'Formazione':'Valutazioni'],['fanta','🏆','Fanta Michele'],['stat','📊','Statistiche'],['conv','📋','Convocazioni']];if(admin())T.push(['vot','📝','Valutazioni'],['trn','🏋️','Allenamenti'],['ana','👥','Anagrafe'],['usr','🔑','Utenti']);
+if(tab!=='home'&&!T.some(t=>t[0]===tab))tab='home';const views={cal:vCal,val:vVal,fanta:vFanta,stat:vStat,conv:vConv,vot:vVot,trn:vTrn,ana:vAna,usr:vUsr},c=T.find(t=>t[0]===tab);
 $('#app').innerHTML=`<header>${tab!=='home'?'<button onclick="tab=\'home\';R()">‹ Home</button>':''}<img src="${S.team.logo||'icon-192.png'}"><b>${e(S.team.name)}${c?' · '+c[2]:''}</b><span class=ver>v${V}</span><button onclick="out()">${me==='guest'?'Accedi':'Esci'}</button>${admin()?'<button onclick="vSet()">⚙️</button>':''}</header><main>${tab==='home'?`<div class=hm>${T.map(t=>`<button onclick="tab='${t[0]}';R()"><span>${t[1]}</span>${t[2]}</button>`).join('')}</div>`:views[tab]()}</main>`}
 /* FIREBASE */
 const CFG=typeof FIREBASE_CONFIG!=='undefined'?FIREBASE_CONFIG:typeof firebaseConfig!=='undefined'?firebaseConfig:null;
