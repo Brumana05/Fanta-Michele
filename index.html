@@ -20,13 +20,17 @@ table{border-collapse:collapse;width:100%;font-size:13px;background:#fff}th,td{p
 #bn{position:fixed;top:0;left:0;right:0;z-index:30;background:#c99a1c;color:#fff;padding:10px;display:flex;gap:8px;align-items:center;font-size:13px;padding-top:calc(10px + env(safe-area-inset-top,0px))}#bn button{margin-left:auto;background:#fff;color:#1b2333;border:0;border-radius:8px;padding:6px 10px}
 .auth{max-width:380px;margin:40px auto;padding:20px;text-align:center}.auth img{width:90px;height:90px;border-radius:50%;object-fit:cover}
 </style></head><body><div id="bn" style="display:none"></div><div id="app"></div><div id="m"></div>
+<script src="firebase-config.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script>
-const V='1.01',K='osm_v1',$=q=>document.querySelector(q),p2=n=>String(n).padStart(2,'0'),uid=()=>Math.random().toString(36).slice(2,9);
+const V='1.02',K='osm_v1',$=q=>document.querySelector(q),p2=n=>String(n).padStart(2,'0'),uid=()=>Math.random().toString(36).slice(2,9);
 const e=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const def=()=>({team:{name:'Oratorio San Michele',logo:''},players:[],events:[],users:[],votes:{}});
-let S;try{S=Object.assign(def(),JSON.parse(localStorage.getItem(K)))}catch(x){S=def()}
-const save=()=>localStorage.setItem(K,JSON.stringify(S));
-let me=localStorage.getItem('osm_me')||'',tab='home',fe=null,fx=null,authMode='in';
+let S=def();
+const save=()=>{if(admin())syncA()};
+let me='',tab='home',fe=null,fx=null,authMode='in';
 const admin=()=>me==='Admin',canVote=()=>me&&me!=='guest'&&me!=='Admin';
 const today=()=>{const d=new Date();return`${d.getFullYear()}-${p2(d.getMonth()+1)}-${p2(d.getDate())}`};
 const started=x=>new Date(x.date+'T'+(x.time||'00:00'))<=new Date();
@@ -38,18 +42,20 @@ const n=m.split('-').map(Number);return[['POR'],...n.map((k,i)=>Array(k).fill(i=
 const MESI=['Gennaio','Febbraio','Marzo','Aprile','Maggio','Giugno','Luglio','Agosto','Settembre','Ottobre','Novembre','Dicembre'];
 let cal={y:new Date().getFullYear(),m:new Date().getMonth(),d:today()};
 const msg=t=>`<div class=msg>${t}</div>`,pl=id=>S.players.find(p=>p.id===id),fmt=n=>n==null?'–':n.toFixed(1).replace('.',',');
-function M(h){const m=$('#m');m.innerHTML='<div>'+h+'</div>';m.classList.add('on')}function X(){$('#m').classList.remove('on')}
+function M(h){const m=$('#m');m.innerHTML='<div>'+h+'</div>';m.classList.add('on')}function X(){$('#m').classList.remove('on');if(pend)R()}
 function go(){R()}
 /* AUTH */
 function vAuth(){return`<div class=auth>${S.team.logo?`<img src="${S.team.logo}">`:'<div style="font-size:60px">⚽</div>'}<h2>${e(S.team.name)}</h2><p>Giovanissimi Under 15</p>
 <input id=au placeholder="Nome utente" autocapitalize=off><input id=ap type=password placeholder="Password">
 <button class=b style="width:100%" onclick="doAuth()">${authMode==='in'?'Accedi':'Registrati'}</button><p><a href="#" onclick="authMode=authMode==='in'?'reg':'in';R();return false">${authMode==='in'?'Non hai un account? Registrati':'Hai già un account? Accedi'}</a></p>
-<button class="b g" style="width:100%" onclick="setMe('guest')">Continua senza accedere</button><p id=ae style="color:#c0392b"></p></div>`}
-function doAuth(){const u=$('#au').value.trim(),p=$('#ap').value,er=t=>$('#ae').textContent=t;if(!u||!p)return er('Inserisci nome utente e password');
-if(authMode==='in'){if(u==='Admin'&&p==='Administrator')return setMe('Admin');const x=S.users.find(y=>y.u===u&&y.p===p);x?setMe(u):er('Credenziali errate')}
-else{if(u.toLowerCase()==='admin'||S.users.some(y=>y.u.toLowerCase()===u.toLowerCase()))return er('Nome utente non disponibile');S.users.push({u,p,d:today()});save();setMe(u)}}
-function setMe(u){me=u;localStorage.setItem('osm_me',u);tab='home';R()}
-function out(){me='';localStorage.removeItem('osm_me');R()}
+<button class="b g" style="width:100%" onclick="setMe('guest')">Continua senza accedere</button><p style="font-size:12px;color:#667">Password: almeno 6 caratteri. Nome utente: lettere, numeri . _ -</p><p id=ae style="color:#c0392b">${FB_OK?'':'Firebase non configurato: compila firebase-config.js'}</p></div>`}
+async function doAuth(){const u=$('#au').value.trim(),p=$('#ap').value,E=t=>$('#ae').textContent=t;if(!FB_OK)return E('Firebase non configurato');if(!u||!p)return E('Inserisci nome utente e password');
+if(!/^[A-Za-z0-9._-]{3,20}$/.test(u))return E('Nome utente: 3-20 caratteri (lettere, numeri . _ -)');
+try{if(authMode==='in')await auth.signInWithEmailAndPassword(mail(u),p);
+else{if(u.toLowerCase()==='admin')return E('Nome utente non disponibile');regName=u;const c=await auth.createUserWithEmailAndPassword(mail(u),p);await db.collection('users').doc(c.user.uid).set({u,d:today()});me=u;regName=''}
+tab='home';R()}catch(x){regName='';E({'auth/email-already-in-use':'Nome utente non disponibile','auth/weak-password':'La password deve avere almeno 6 caratteri','auth/invalid-credential':'Credenziali errate','auth/user-not-found':'Credenziali errate','auth/wrong-password':'Credenziali errate','auth/network-request-failed':'Nessuna connessione'}[x.code]||x.message)}}
+function setMe(u){me=u;localStorage.setItem('osm_guest','1');tab='home';R()}
+function out(){localStorage.removeItem('osm_guest');me='';tab='home';if(auth&&auth.currentUser)auth.signOut();else R()}
 /* CALENDARIO */
 function vCal(){const f=new Date(cal.y,cal.m,1),off=(f.getDay()+6)%7,dim=new Date(cal.y,cal.m+1,0).getDate();let c='';for(let i=0;i<off;i++)c+='<div></div>';
 for(let d=1;d<=dim;d++){const ds=`${cal.y}-${p2(cal.m+1)}-${p2(d)}`,ev=S.events.filter(x=>x.date===ds);c+=`<div class="day ${ds===cal.d?'sel':''} ${ds===today()?'tod':''}" onclick="cal.d='${ds}';R()">${d}<div class=dots>${ev.slice(0,4).map(x=>`<i style="background:${TYPES[x.type][1]}"></i>`).join('')}</div></div>`}
@@ -75,7 +81,7 @@ if(!canVote())return msg('Per votare i ragazzi devi <a href="#" onclick="out();r
 const evs=S.events.filter(x=>x.type!=='all'&&x.date===today()&&started(x)&&ids(x).length);
 if(!evs.length)return msg('Le valutazioni si aprono all\'inizio della partita e restano aperte fino a fine giornata.');
 return`<p style="font-size:12px;color:#667">I voti sono un parere per aiutare l\'admin: i voti definitivi li assegna solo lui. Vedi solo i tuoi voti.</p>`+evs.map(ev=>`<div class=card style="border-color:${TYPES[ev.type][1]}"><b>${TYPES[ev.type][0]} vs ${e(ev.opp)}</b>${ids(ev).map(id=>{const p=pl(id);return p?`<div class=row style="margin-top:6px"><span style="flex:1">${p.num?'#'+e(p.num)+' ':''}${e(p.name)}</span><select style="width:90px;margin:0" onchange="setV('${ev.id}','${id}',this.value)">${opts(VOTES,S.votes[ev.id]?.[me]?.[id])}</select></div>`:''}).join('')}</div>`).join('')}
-function setV(eid,pid,v){((S.votes[eid]??={})[me]??={})[pid]=v;save()}
+function setV(eid,pid,v){const m=((S.votes[eid]??={})[me]??={});m[pid]=v;const uid=auth.currentUser.uid;db.collection('votes').doc(eid+'_'+uid).set({eid,uid,user:me,v:m}).catch(x=>alert('Voto non salvato: '+x.message))}
 function vForm(){if(!fe)return`<h4>Seleziona la partita</h4>`+(S.events.filter(x=>x.type!=='all').sort((a,b)=>b.date.localeCompare(a.date)).map(x=>`<div class=card style="border-color:${TYPES[x.type][1]}" onclick="fe='${x.id}';R()"><b>${TYPES[x.type][0]}</b> ${x.date.split('-').reverse().join('/')} vs ${e(x.opp)}<br><small>${x.lineup?'Formazione inserita':'Da compilare'}</small></div>`).join('')||msg('Aggiungi prima le partite dal Calendario'));
 const ev=S.events.find(x=>x.id===fe);ev.lineup??={mod:'4-4-2',slots:[],bench:[]};ev.stats??={};const rows=rowsOf(ev.lineup.mod);let i=0;
 const ps=[...S.players].sort((a,b)=>a.name.localeCompare(b.name));
@@ -114,13 +120,13 @@ function plS(id){const l=$('#p1').value.trim(),f=$('#p5').value.trim(),o={last:l
 function plD(id){if(confirm('Eliminare atleta?')){S.players=S.players.filter(x=>x.id!==id);save();R()}}
 function img(inp,sz,t,cb){const f=inp.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{const i=new Image();i.onload=()=>{const k=Math.min(1,sz/Math.max(i.width,i.height)),c=document.createElement('canvas');c.width=i.width*k;c.height=i.height*k;c.getContext('2d').drawImage(i,0,0,c.width,c.height);cb(c.toDataURL('image/'+t,.8))};i.src=r.result};r.readAsDataURL(f)}
 /* UTENTI */
-function vUsr(){return`<p><b>${S.users.length}</b> utenti registrati</p>`+(S.users.map(u=>`<div class=card><b>${e(u.u)}</b> · password: <code>${e(u.p)}</code> <button class="b r" style="float:right;padding:4px 8px" onclick="uD('${e(u.u)}')">🗑</button><br><small>Iscritto il ${e(u.d||'')}</small></div>`).join('')||msg('Nessun utente registrato su questo dispositivo'))}
-function uD(u){if(confirm('Eliminare utente?')){S.users=S.users.filter(x=>x.u!==u);save();R()}}
+function vUsr(){return`<p><b>${S.users.length}</b> utenti registrati</p><p style="font-size:12px;color:#667">Le password sono protette da Firebase e non sono visibili. Per reimpostarle o eliminare un account usa Firebase Console → Authentication.</p>`+(S.users.sort((a,b)=>a.u.localeCompare(b.u)).map(u=>`<div class=card><b>${e(u.u)}</b> <button class="b r" style="float:right;padding:4px 8px" onclick="uD('${u.id}')">🗑</button><br><small>Iscritto il ${e(u.d||'')}</small></div>`).join('')||msg('Nessun utente registrato'))}
+function uD(id){if(confirm('Rimuovere il profilo utente?'))db.collection('users').doc(id).delete()}
 /* IMPOSTAZIONI */
 let tmpLogo=null;
 function vSet(){tmpLogo=null;M(`<h3>Impostazioni</h3><label>Nome società</label><input id=s1 value="${e(S.team.name)}"><label>Logo</label><input type=file accept="image/*" onchange="img(this,160,'png',d=>tmpLogo=d)"><button class=b onclick="S.team.name=$('#s1').value||S.team.name;if(tmpLogo)S.team.logo=tmpLogo;save();X();R()">Salva</button><hr>
 <label>Importa anagrafe da Excel (colonne: Nome, Cognome, Numero, Ruolo, Anno)</label><input type=file accept=".xlsx,.xls,.csv" onchange="xl(this)"><hr>
-<div class=row><button class="b g" onclick="bk()">⬇ Backup dati</button><label class="b g" style="margin:0">⬆ Ripristina<input type=file hidden accept=".json" onchange="rs(this)"></label></div><br><button class="b g" onclick="X()">Chiudi</button>`)}
+<button class="b g" onclick="mig()">☁️ Carica su Firebase i dati di questo dispositivo</button><br><br><div class=row><button class="b g" onclick="bk()">⬇ Backup dati</button><label class="b g" style="margin:0">⬆ Ripristina<input type=file hidden accept=".json" onchange="rs(this)"></label></div><br><button class="b g" onclick="X()">Chiudi</button>`)}
 function xl(inp){const f=inp.files[0];if(!f)return;const run=()=>{const r=new FileReader();r.onload=ev=>{const wb=XLSX.read(ev.target.result,{type:'array'}),rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);let n=0;
 rows.forEach(r0=>{const r={};for(const k in r0)r[k.toLowerCase().trim()]=r0[k];const l=String(r.cognome??'').trim(),f=String(r.nome??'').trim(),name=(l+' '+f).trim()||String(r.atleta??r.giocatore??'').trim();if(!name)return;const rl=String(r.ruolo??'').trim().toUpperCase()[0]||'';const o={last:l||name.split(' ')[0],first:f,name,num:String(r.numero??r.n??''),role:'PDCA'.includes(rl)&&rl?rl:'',year:String(r.anno??r['anno di nascita']??'')},x=S.players.find(p=>p.name.toLowerCase()===o.name.toLowerCase());x?Object.assign(x,o):S.players.push({id:uid(),...o});n++});save();X();R();alert('Importati '+n+' atleti')};r.readAsArrayBuffer(f)};
 if(window.XLSX)run();else{const s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';s.onload=run;s.onerror=()=>alert('Impossibile caricare la libreria Excel (serve internet)');document.head.appendChild(s)}}
@@ -132,13 +138,32 @@ return L.map(x=>`<div class=card style="border-color:${TYPES[x.type][1]}"><b>${T
 function cv(id){M(`<img src="${S.events.find(x=>x.id===id).conv}" style="width:100%"><br><button class="b g" onclick="X()">Chiudi</button>`)}
 function cUp(id,inp){img(inp,1100,'jpeg',d=>{const x=S.events.find(y=>y.id===id);x.conv=d;try{save();R()}catch(er){delete x.conv;alert('Memoria piena: immagine troppo grande')}})}
 function cDel(id){if(confirm('Eliminare le convocazioni?')){delete S.events.find(x=>x.id===id).conv;save();R()}}
-function R(){if(!me){$('#app').innerHTML=vAuth();return}
+function R(){pend=false;if(!me){$('#app').innerHTML=vAuth();return}
 const T=[['cal','📅','Calendario'],['val','⭐',admin()?'Formazione':'Valutazioni'],['fanta','🏆','Fanta Michele'],['stat','📊','Statistiche'],['conv','📋','Convocazioni']];if(admin())T.push(['ana','👥','Anagrafe'],['usr','🔑','Utenti']);
 if(tab!=='home'&&!T.some(t=>t[0]===tab))tab='home';const views={cal:vCal,val:vVal,fanta:vFanta,stat:vStat,conv:vConv,ana:vAna,usr:vUsr},c=T.find(t=>t[0]===tab);
 $('#app').innerHTML=`<header>${tab!=='home'?'<button onclick="tab=\'home\';R()">‹ Home</button>':''}${S.team.logo?`<img src="${S.team.logo}">`:'⚽'}<b>${e(S.team.name)}${c?' · '+c[2]:''}</b><span class=ver>v${V}</span><button onclick="out()">${me==='guest'?'Accedi':'Esci'}</button>${admin()?'<button onclick="vSet()">⚙️</button>':''}</header><main>${tab==='home'?`<div class=hm>${T.map(t=>`<button onclick="tab='${t[0]}';R()"><span>${t[1]}</span>${t[2]}</button>`).join('')}</div>`:views[tab]()}</main>`}
+/* FIREBASE */
+const FB_OK=typeof firebase!=='undefined'&&typeof FIREBASE_CONFIG!=='undefined'&&!String(FIREBASE_CONFIG.apiKey).startsWith('INCOLLA');
+let db,auth,L={players:{},events:{},team:''},un=[],pend=false,regName='';
+const mail=u=>u.toLowerCase()+'@osm.local',busy=()=>$('#m').classList.contains('on')||/INPUT|SELECT|TEXTAREA/.test(document.activeElement?.tagName||''),dirty=()=>{busy()?pend=true:R()},er=x=>console.error(x);
+document.addEventListener('focusout',()=>setTimeout(()=>{if(pend&&!busy())R()},300));
+function vt(sn){S.votes={};sn.docs.forEach(d=>{const o=d.data();(S.votes[o.eid]??={})[o.user]=o.v});dirty()}
+function fbInit(){if(!FB_OK)return;firebase.initializeApp(FIREBASE_CONFIG);db=firebase.firestore();auth=firebase.auth();
+db.collection('meta').doc('team').onSnapshot(d=>{if(d.exists){S.team=d.data();L.team=JSON.stringify(S.team)}dirty()},er);
+for(const c of ['players','events'])db.collection(c).onSnapshot(sn=>{S[c]=sn.docs.map(d=>d.data());L[c]={};S[c].forEach(x=>L[c][x.id]=JSON.stringify(x));dirty()},er);
+auth.onAuthStateChanged(async u=>{un.forEach(f=>f());un=[];if(!u){me=localStorage.getItem('osm_guest')?'guest':'';S.votes={};S.users=[];return R()}
+const A=u.email==='admin@osm.local';if(A)me='Admin';else{try{const d=await db.collection('users').doc(u.uid).get();me=regName||(d.exists?d.data().u:u.email.split('@')[0])}catch(x){me=regName||u.email.split('@')[0]}}
+if(A)un.push(db.collection('votes').onSnapshot(vt,er),db.collection('users').onSnapshot(sn=>{S.users=sn.docs.map(d=>({id:d.id,...d.data()}));dirty()},er));
+else un.push(db.collection('votes').where('uid','==',u.uid).onSnapshot(vt,er));R()})}
+function syncA(){if(!db)return;const w=(c,id,o)=>db.collection(c).doc(id).set(o).catch(x=>alert('Errore salvataggio: '+x.message));
+for(const c of ['players','events']){for(const x of S[c]){const j=JSON.stringify(x);if(L[c][x.id]!==j){L[c][x.id]=j;w(c,x.id,JSON.parse(j))}}
+for(const id in L[c])if(!S[c].some(x=>x.id===id)){delete L[c][id];db.collection(c).doc(id).delete()}}
+const t=JSON.stringify(S.team);if(L.team!==t){L.team=t;w('meta','team',JSON.parse(t))}}
+function mig(){let o;try{o=JSON.parse(localStorage.getItem(K))}catch(x){}if(!o||!((o.players||[]).length||(o.events||[]).length))return alert('Nessun dato locale trovato su questo dispositivo');
+if(!confirm('I dati di questo dispositivo sostituiranno quelli online. Continuare?'))return;S.players=o.players||[];S.events=o.events||[];if(o.team)S.team=o.team;syncA();alert('Dati caricati su Firebase')}
 /* AGGIORNAMENTI */
 async function chk(){try{const j=await(await fetch('version.json?t='+Date.now(),{cache:'no-store'})).json();if(j.version&&j.version!==V){const b=$('#bn');b.style.display='flex';b.innerHTML=`🔔 Nuova versione disponibile<br>Attuale: v${V} → Nuova: v${e(j.version)}<button onclick="upd()">Aggiorna</button>`}}catch(x){}}
 async function upd(){try{(await navigator.serviceWorker.getRegistrations()).forEach(r=>r.unregister());(await caches.keys()).forEach(k=>caches.delete(k))}catch(x){}location.reload()}
 if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js');
-R();chk();setInterval(chk,300000);document.addEventListener('visibilitychange',()=>{if(!document.hidden)chk()});
+fbInit();R();chk();setInterval(chk,300000);document.addEventListener('visibilitychange',()=>{if(!document.hidden)chk()});
 </script></body></html>
