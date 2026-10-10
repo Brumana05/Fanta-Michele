@@ -25,7 +25,7 @@ table{border-collapse:collapse;width:100%;font-size:13px;background:#fff}th,td{p
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script>
-const V='1.02',K='osm_v1',$=q=>document.querySelector(q),p2=n=>String(n).padStart(2,'0'),uid=()=>Math.random().toString(36).slice(2,9);
+const V='1.03',K='osm_v1',$=q=>document.querySelector(q),p2=n=>String(n).padStart(2,'0'),uid=()=>Math.random().toString(36).slice(2,9);
 const e=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const def=()=>({team:{name:'Oratorio San Michele',logo:''},players:[],events:[],users:[],votes:{}});
 let S=def();
@@ -48,8 +48,8 @@ function go(){R()}
 function vAuth(){return`<div class=auth>${S.team.logo?`<img src="${S.team.logo}">`:'<div style="font-size:60px">⚽</div>'}<h2>${e(S.team.name)}</h2><p>Giovanissimi Under 15</p>
 <input id=au placeholder="Nome utente" autocapitalize=off><input id=ap type=password placeholder="Password">
 <button class=b style="width:100%" onclick="doAuth()">${authMode==='in'?'Accedi':'Registrati'}</button><p><a href="#" onclick="authMode=authMode==='in'?'reg':'in';R();return false">${authMode==='in'?'Non hai un account? Registrati':'Hai già un account? Accedi'}</a></p>
-<button class="b g" style="width:100%" onclick="setMe('guest')">Continua senza accedere</button><p style="font-size:12px;color:#667">Password: almeno 6 caratteri. Nome utente: lettere, numeri . _ -</p><p id=ae style="color:#c0392b">${FB_OK?'':'Firebase non configurato: compila firebase-config.js'}</p></div>`}
-async function doAuth(){const u=$('#au').value.trim(),p=$('#ap').value,E=t=>$('#ae').textContent=t;if(!FB_OK)return E('Firebase non configurato');if(!u||!p)return E('Inserisci nome utente e password');
+<button class="b g" style="width:100%" onclick="setMe('guest')">Continua senza accedere</button><p style="font-size:12px;color:#667">Password: almeno 6 caratteri. Nome utente: lettere, numeri . _ -</p><p id=ae style="color:#c0392b">${FB_ERR}</p></div>`}
+async function doAuth(){const u=$('#au').value.trim(),p=$('#ap').value,E=t=>$('#ae').textContent=t;if(!FB_OK)return E(FB_ERR);if(!u||!p)return E('Inserisci nome utente e password');
 if(!/^[A-Za-z0-9._-]{3,20}$/.test(u))return E('Nome utente: 3-20 caratteri (lettere, numeri . _ -)');
 try{if(authMode==='in')await auth.signInWithEmailAndPassword(mail(u),p);
 else{if(u.toLowerCase()==='admin')return E('Nome utente non disponibile');regName=u;const c=await auth.createUserWithEmailAndPassword(mail(u),p);await db.collection('users').doc(c.user.uid).set({u,d:today()});me=u;regName=''}
@@ -143,12 +143,13 @@ const T=[['cal','📅','Calendario'],['val','⭐',admin()?'Formazione':'Valutazi
 if(tab!=='home'&&!T.some(t=>t[0]===tab))tab='home';const views={cal:vCal,val:vVal,fanta:vFanta,stat:vStat,conv:vConv,ana:vAna,usr:vUsr},c=T.find(t=>t[0]===tab);
 $('#app').innerHTML=`<header>${tab!=='home'?'<button onclick="tab=\'home\';R()">‹ Home</button>':''}${S.team.logo?`<img src="${S.team.logo}">`:'⚽'}<b>${e(S.team.name)}${c?' · '+c[2]:''}</b><span class=ver>v${V}</span><button onclick="out()">${me==='guest'?'Accedi':'Esci'}</button>${admin()?'<button onclick="vSet()">⚙️</button>':''}</header><main>${tab==='home'?`<div class=hm>${T.map(t=>`<button onclick="tab='${t[0]}';R()"><span>${t[1]}</span>${t[2]}</button>`).join('')}</div>`:views[tab]()}</main>`}
 /* FIREBASE */
-const FB_OK=typeof firebase!=='undefined'&&typeof FIREBASE_CONFIG!=='undefined'&&!String(FIREBASE_CONFIG.apiKey).startsWith('INCOLLA');
+const CFG=typeof FIREBASE_CONFIG!=='undefined'?FIREBASE_CONFIG:typeof firebaseConfig!=='undefined'?firebaseConfig:null;
+const FB_ERR=typeof firebase==='undefined'?'Libreria Firebase non caricata: controlla la connessione internet':!CFG?'File firebase-config.js non trovato o con errori: controlla che sia nella stessa cartella di index.html, che la variabile si chiami FIREBASE_CONFIG e che non ci siano righe import':(!CFG.apiKey||String(CFG.apiKey).startsWith('INCOLLA'))?'firebase-config.js contiene ancora i valori INCOLLA_QUI (oppure la versione caricata su GitHub non è quella modificata)':'',FB_OK=!FB_ERR;
 let db,auth,L={players:{},events:{},team:''},un=[],pend=false,regName='';
 const mail=u=>u.toLowerCase()+'@osm.local',busy=()=>$('#m').classList.contains('on')||/INPUT|SELECT|TEXTAREA/.test(document.activeElement?.tagName||''),dirty=()=>{busy()?pend=true:R()},er=x=>console.error(x);
 document.addEventListener('focusout',()=>setTimeout(()=>{if(pend&&!busy())R()},300));
 function vt(sn){S.votes={};sn.docs.forEach(d=>{const o=d.data();(S.votes[o.eid]??={})[o.user]=o.v});dirty()}
-function fbInit(){if(!FB_OK)return;firebase.initializeApp(FIREBASE_CONFIG);db=firebase.firestore();auth=firebase.auth();
+function fbInit(){if(!FB_OK)return;firebase.initializeApp(CFG);db=firebase.firestore();auth=firebase.auth();
 db.collection('meta').doc('team').onSnapshot(d=>{if(d.exists){S.team=d.data();L.team=JSON.stringify(S.team)}dirty()},er);
 for(const c of ['players','events'])db.collection(c).onSnapshot(sn=>{S[c]=sn.docs.map(d=>d.data());L[c]={};S[c].forEach(x=>L[c][x.id]=JSON.stringify(x));dirty()},er);
 auth.onAuthStateChanged(async u=>{un.forEach(f=>f());un=[];if(!u){me=localStorage.getItem('osm_guest')?'guest':'';S.votes={};S.users=[];return R()}
