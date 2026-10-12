@@ -9,6 +9,8 @@ service cloud.firestore {
     match /users/{uid} {
       allow read: if isAdmin() || (request.auth != null && request.auth.uid == uid);
       allow create: if request.auth != null && request.auth.uid == uid;
+      allow update: if request.auth != null && request.auth.uid == uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['photo']);
     }
     match /votes/{id} {
       allow read: if isAdmin() || (request.auth != null && resource.data.uid == request.auth.uid);
