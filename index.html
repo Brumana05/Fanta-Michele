@@ -30,7 +30,7 @@ main h4{color:#8a6a00;border-bottom:2px solid #c99a1c;padding-bottom:3px}.auth h
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script>
-const V='1.16',K='osm_v1',$=q=>document.querySelector(q),p2=n=>String(n).padStart(2,'0'),uid=()=>Math.random().toString(36).slice(2,9);
+const V='1.17',K='osm_v1',$=q=>document.querySelector(q),p2=n=>String(n).padStart(2,'0'),uid=()=>Math.random().toString(36).slice(2,9);
 const e=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const def=()=>({team:{name:'Oratorio San Michele',logo:''},players:[],events:[],users:[],votes:{},mvpv:{}});
 let S=def();
@@ -53,19 +53,22 @@ const msg=t=>`<div class=msg>${t}</div>`,pl=id=>S.players.find(p=>p.id===id),fmt
 function M(h){const m=$('#m');m.innerHTML='<div>'+h+'</div>';m.classList.add('on')}function X(){$('#m').classList.remove('on');if(pend)R()}
 function go(){R()}
 /* AUTH */
-function vAuth(){return`<div class=auth>${`<img src="${S.team.logo||'logo.png'}">`}<h2>${e(S.team.name)}</h2><p>Giovanissimi Under 15</p>
+function vAuth(){return`<div class=auth>${`<img src="${S.team.logo||'logo.png'}">`}<h2>${e(S.team.name)}</h2><p>Giovanissimi Under 15</p><h3 style="color:#1e3a8a;font-size:22px;margin:14px 0 6px">${authMode==='in'?'Accedi':'Registrati'}</h3>
 <input id=au placeholder="Nome utente" autocapitalize=off><input id=ap type=password placeholder="Password">${authMode==='reg'?`<label style="display:block;text-align:left">Chi sei?</label><select id=ar onchange="$('#asw').style.display=this.value==='giocatore'?'':'none'"><option value=genitore>Genitore</option><option value=giocatore>Giocatore</option><option value=staff>Staff</option></select><div id=asw style="display:none"><input id=asn placeholder="Il tuo cognome (come in Anagrafe)" oninput="$('#apl').innerHTML=''"><div id=apl></div></div>`:''}
 <button class=b style="width:100%" onclick="doAuth()">${authMode==='in'?'Accedi':'Registrati'}</button><p><a href="#" onclick="authMode=authMode==='in'?'reg':'in';R();return false">${authMode==='in'?'Non hai un account? Registrati':'Hai già un account? Accedi'}</a></p>
 <button class="b g" style="width:100%" onclick="setMe('guest')">Continua senza accedere</button><p style="font-size:12px;color:#667">Password: almeno 6 caratteri. Nome utente: lettere, numeri . _ -</p><p id=ae style="color:#c0392b">${FB_ERR}</p></div>`}
 async function doAuth(){const u=$('#au').value.trim(),p=$('#ap').value,E=t=>$('#ae').textContent=t;if(!FB_OK)return E(FB_ERR);if(!u||!p)return E('Inserisci nome utente e password');
 if(!/^[A-Za-z0-9._-]{3,20}$/.test(u))return E('Nome utente: 3-20 caratteri (lettere, numeri . _ -)');
-try{if(authMode==='in')await auth.signInWithEmailAndPassword(mail(u),p);
+try{if(authMode==='in'){const key=u.toLowerCase();let em=key==='admin'?'admin@osm.local':key+'@osm.local';if(key!=='admin'){const nd=await db.collection('usernames').doc(key).get();if(nd.exists)em=nd.data().em}await auth.signInWithEmailAndPassword(em,p)}
 else{if(u.toLowerCase()==='admin')return E('Nome utente non disponibile');
 const role=$('#ar').value;let pid='';
 if(role==='giocatore'){const q=$('#asn').value.trim().toLowerCase();if(!q)return E('Inserisci il tuo cognome');const L=S.players.filter(x=>(x.last||x.name.split(' ')[0]).toLowerCase()===q);
 if(!L.length)return E('Cognome non trovato in Anagrafe: controlla di averlo scritto bene o chiedi all\'admin di inserirti');
 if(L.length>1){const ch=$('#apid');if(!ch){$('#apl').innerHTML='<select id=apid>'+L.map(x=>`<option value=${x.id}>${e(x.name)}${x.num?' · #'+e(x.num):''}</option>`).join('')+'</select>';return E('Ci sono più giocatori con questo cognome: scegli il tuo e premi di nuovo Registrati')}pid=ch.value}else pid=L[0].id}
-regName=u;regInfo={role,pid};const c=await auth.createUserWithEmailAndPassword(mail(u),p);await db.collection('users').doc(c.user.uid).set({u,d:today(),role,pid},{merge:true});me=u;myRole=role;myPid=pid;regName='';setTimeout(()=>{regInfo=null},5000)}
+const key=u.toLowerCase();if((await db.collection('usernames').doc(key).get()).exists)return E('Nome utente non disponibile');
+regName=u;regInfo={role,pid};const em='u'+Date.now().toString(36)+Math.random().toString(36).slice(2,8)+'@osm.local';const c=await auth.createUserWithEmailAndPassword(em,p);
+try{await db.collection('usernames').doc(key).set({u,uid:c.user.uid,em})}catch(x2){await c.user.delete();regName='';regInfo=null;return E('Nome utente non disponibile')}
+await db.collection('users').doc(c.user.uid).set({u,d:today(),role,pid},{merge:true});me=u;myRole=role;myPid=pid;regName='';setTimeout(()=>{regInfo=null},5000)}
 tab='home';R()}catch(x){regName='';regInfo=null;E({'auth/email-already-in-use':'Nome utente non disponibile','auth/weak-password':'La password deve avere almeno 6 caratteri','auth/invalid-credential':'Credenziali errate','auth/user-not-found':'Credenziali errate','auth/wrong-password':'Credenziali errate','auth/network-request-failed':'Nessuna connessione'}[x.code]||x.message)}}
 function setMe(u){me=u;localStorage.setItem('osm_guest','1');tab='home';R()}
 function out(){localStorage.removeItem('osm_guest');localStorage.removeItem('osm_last');me='';tab='home';if(auth&&auth.currentUser)auth.signOut();else R()}
@@ -146,7 +149,8 @@ function plD(id){if(confirm('Eliminare atleta?')){S.players=S.players.filter(x=>
 function img(inp,sz,t,cb){const f=inp.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{const i=new Image();i.onload=()=>{const k=Math.min(1,sz/Math.max(i.width,i.height)),c=document.createElement('canvas');c.width=i.width*k;c.height=i.height*k;c.getContext('2d').drawImage(i,0,0,c.width,c.height);cb(c.toDataURL('image/'+t,.8))};i.src=r.result};r.readAsDataURL(f)}
 /* UTENTI */
 function vUsr(){return`<p><b>${S.users.length}</b> utenti registrati</p><p style="font-size:12px;color:#667">Le password sono protette da Firebase e non sono visibili. Per reimpostarle o eliminare un account usa Firebase Console → Authentication.</p>`+(S.users.sort((a,b)=>a.u.localeCompare(b.u)).map(u=>`<div class=card><b>${e(u.u)}</b> <button class="b r" style="float:right;padding:4px 8px" onclick="uD('${u.id}')">🗑</button><br><small>Iscritto il ${e(u.d||'')} · ${{genitore:'Genitore',giocatore:'Giocatore',staff:'Staff'}[u.role]||'ruolo non scelto'}${u.pid&&pl(u.pid)?' ('+e(pl(u.pid).name)+')':''}</small></div>`).join('')||msg('Nessun utente registrato'))}
-function uD(id){if(confirm('Rimuovere il profilo utente?'))db.collection('users').doc(id).delete()}
+async function uD(id){if(!confirm('Eliminare questo utente? Il suo nome utente tornerà disponibile e i suoi voti verranno cancellati.'))return;const x=S.users.find(y=>y.id===id);
+try{const b=db.batch();b.delete(db.collection('users').doc(id));if(x)b.delete(db.collection('usernames').doc(x.u.toLowerCase()));for(const c of ['votes','mvp'])(await db.collection(c).where('uid','==',id).get()).docs.forEach(d=>b.delete(d.ref));await b.commit()}catch(er){alert('Errore: '+er.message)}}
 /* IMPOSTAZIONI */
 let tmpLogo=null;
 function vSet(){tmpLogo=null;M(`<h3>Impostazioni</h3><label>Nome società</label><input id=s1 value="${e(S.team.name)}"><label>Logo</label><input type=file accept="image/*" onchange="img(this,160,'png',d=>tmpLogo=d)"><button class=b onclick="S.team.name=$('#s1').value||S.team.name;if(tmpLogo)S.team.logo=tmpLogo;save();X();R()">Salva</button><hr>
@@ -250,7 +254,7 @@ db.collection('meta').doc('team').onSnapshot(d=>{if(d.exists){S.team=d.data();L.
 for(const c of ['players','events'])db.collection(c).onSnapshot(sn=>{S[c]=sn.docs.map(d=>d.data());L[c]={};S[c].forEach(x=>L[c][x.id]=JSON.stringify(x));if(c==='events')autoAvg();dirty()},er);
 db.collection('mvp').onSnapshot(sn=>{S.mvpv={};sn.docs.forEach(d=>{const o=d.data();(S.mvpv[o.eid]??={})[o.uid]=o.pid});dirty()},er);
 auth.onAuthStateChanged(async u=>{un.forEach(f=>f());un=[];if(!u){me=localStorage.getItem('osm_guest')?'guest':'';localStorage.removeItem('osm_last');myPh='';myRole='';myPid='';localStorage.removeItem('osm_ph');S.votes={};S.users=[];return R()}
-const A=u.email==='admin@osm.local';let d=null;try{d=await db.collection('users').doc(u.uid).get()}catch(x){}
+const A=u.email==='admin@osm.local';let d=null;try{d=await db.collection('users').doc(u.uid).get()}catch(x){}if(!A&&!regInfo&&!regName&&d&&!d.exists){auth.signOut();alert('Questo account è stato eliminato. Registrati di nuovo per usare l\'app.');return}
 me=A?'Admin':regName||(d&&d.exists&&d.data().u)||u.email.split('@')[0];myPh=(d&&d.exists&&d.data().photo)||'';myPh?localStorage.setItem('osm_ph',myPh):localStorage.removeItem('osm_ph');const dd=d&&d.exists?d.data():{};if(regInfo){myRole=regInfo.role;myPid=regInfo.pid}else{myRole=dd.role||'';myPid=dd.pid||''}if(!A&&!myRole)setTimeout(()=>{if(!myRole)askRole()},400);
 localStorage.setItem('osm_last',me);if(A)un.push(db.collection('votes').onSnapshot(vt,er),db.collection('users').onSnapshot(sn=>{S.users=sn.docs.map(d=>({id:d.id,...d.data()})).filter(x=>x.u);dirty()},er));
 else un.push(db.collection('votes').where('uid','==',u.uid).onSnapshot(vt,er));R()})}
@@ -259,7 +263,7 @@ for(const c of ['players','events']){for(const x of S[c]){const j=JSON.stringify
 for(const id in L[c])if(!S[c].some(x=>x.id===id)){delete L[c][id];db.collection(c).doc(id).delete()}}
 const t=JSON.stringify(S.team);if(L.team!==t){L.team=t;w('meta','team',JSON.parse(t))}}
 async function purge(){if(me!=='Admin'||!auth.currentUser)return;if(!confirm('Eliminare TUTTI gli utenti registrati (tranne Admin) insieme ai loro voti e ai voti Man of the Match? Operazione irreversibile.'))return;if(!confirm('Ultima conferma: procedo con l\'eliminazione?'))return;
-try{const my=auth.currentUser.uid;let n=0;for(const c of ['users','votes','mvp']){const sn=await db.collection(c).get(),docs=sn.docs.filter(d=>!(c==='users'&&d.id===my));for(let i=0;i<docs.length;i+=400){const b=db.batch();docs.slice(i,i+400).forEach(d=>b.delete(d.ref));await b.commit()}if(c==='users')n=docs.length}
+try{const my=auth.currentUser.uid;let n=0;for(const c of ['users','usernames','votes','mvp']){const sn=await db.collection(c).get(),docs=sn.docs.filter(d=>!(c==='users'&&d.id===my));for(let i=0;i<docs.length;i+=400){const b=db.batch();docs.slice(i,i+400).forEach(d=>b.delete(d.ref));await b.commit()}if(c==='users')n=docs.length}
 X();alert('Eliminati '+n+' profili utente con i relativi voti.\n\nPer eliminare anche gli account di accesso: Firebase Console → Authentication → Utenti → seleziona tutti tranne admin@osm.local → Elimina account.')}catch(x){alert('Errore: '+x.message)}}
 function mig(){let o;try{o=JSON.parse(localStorage.getItem(K))}catch(x){}if(!o||!((o.players||[]).length||(o.events||[]).length))return alert('Nessun dato locale trovato su questo dispositivo');
 if(!confirm('I dati di questo dispositivo sostituiranno quelli online. Continuare?'))return;S.players=o.players||[];S.events=o.events||[];if(o.team)S.team=o.team;syncA();alert('Dati caricati su Firebase')}

@@ -12,6 +12,13 @@ service cloud.firestore {
       allow update: if request.auth != null && request.auth.uid == uid
         && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['u','d']);
     }
+    match /usernames/{n} {
+      allow get: if true;
+      allow list: if isAdmin();
+      allow create: if request.auth != null
+        && request.resource.data.uid == request.auth.uid
+        && n == request.resource.data.u.lower();
+    }
     match /mvp/{id} {
       allow read: if true;
       allow create, update: if request.auth != null
