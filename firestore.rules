@@ -10,7 +10,7 @@ service cloud.firestore {
       allow read: if isAdmin() || (request.auth != null && request.auth.uid == uid);
       allow create: if request.auth != null && request.auth.uid == uid;
       allow update: if request.auth != null && request.auth.uid == uid
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['photo','role','pid']);
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['u','d']);
     }
     match /mvp/{id} {
       allow read: if true;

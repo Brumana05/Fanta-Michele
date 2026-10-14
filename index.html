@@ -30,7 +30,7 @@ main h4{color:#8a6a00;border-bottom:2px solid #c99a1c;padding-bottom:3px}.auth h
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script>
-const V='1.15',K='osm_v1',$=q=>document.querySelector(q),p2=n=>String(n).padStart(2,'0'),uid=()=>Math.random().toString(36).slice(2,9);
+const V='1.16',K='osm_v1',$=q=>document.querySelector(q),p2=n=>String(n).padStart(2,'0'),uid=()=>Math.random().toString(36).slice(2,9);
 const e=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const def=()=>({team:{name:'Oratorio San Michele',logo:''},players:[],events:[],users:[],votes:{},mvpv:{}});
 let S=def();
@@ -54,14 +54,19 @@ function M(h){const m=$('#m');m.innerHTML='<div>'+h+'</div>';m.classList.add('on
 function go(){R()}
 /* AUTH */
 function vAuth(){return`<div class=auth>${`<img src="${S.team.logo||'logo.png'}">`}<h2>${e(S.team.name)}</h2><p>Giovanissimi Under 15</p>
-<input id=au placeholder="Nome utente" autocapitalize=off><input id=ap type=password placeholder="Password">
+<input id=au placeholder="Nome utente" autocapitalize=off><input id=ap type=password placeholder="Password">${authMode==='reg'?`<label style="display:block;text-align:left">Chi sei?</label><select id=ar onchange="$('#asw').style.display=this.value==='giocatore'?'':'none'"><option value=genitore>Genitore</option><option value=giocatore>Giocatore</option><option value=staff>Staff</option></select><div id=asw style="display:none"><input id=asn placeholder="Il tuo cognome (come in Anagrafe)" oninput="$('#apl').innerHTML=''"><div id=apl></div></div>`:''}
 <button class=b style="width:100%" onclick="doAuth()">${authMode==='in'?'Accedi':'Registrati'}</button><p><a href="#" onclick="authMode=authMode==='in'?'reg':'in';R();return false">${authMode==='in'?'Non hai un account? Registrati':'Hai già un account? Accedi'}</a></p>
 <button class="b g" style="width:100%" onclick="setMe('guest')">Continua senza accedere</button><p style="font-size:12px;color:#667">Password: almeno 6 caratteri. Nome utente: lettere, numeri . _ -</p><p id=ae style="color:#c0392b">${FB_ERR}</p></div>`}
 async function doAuth(){const u=$('#au').value.trim(),p=$('#ap').value,E=t=>$('#ae').textContent=t;if(!FB_OK)return E(FB_ERR);if(!u||!p)return E('Inserisci nome utente e password');
 if(!/^[A-Za-z0-9._-]{3,20}$/.test(u))return E('Nome utente: 3-20 caratteri (lettere, numeri . _ -)');
 try{if(authMode==='in')await auth.signInWithEmailAndPassword(mail(u),p);
-else{if(u.toLowerCase()==='admin')return E('Nome utente non disponibile');regName=u;const c=await auth.createUserWithEmailAndPassword(mail(u),p);await db.collection('users').doc(c.user.uid).set({u,d:today()},{merge:true});me=u;regName=''}
-tab='home';R()}catch(x){regName='';E({'auth/email-already-in-use':'Nome utente non disponibile','auth/weak-password':'La password deve avere almeno 6 caratteri','auth/invalid-credential':'Credenziali errate','auth/user-not-found':'Credenziali errate','auth/wrong-password':'Credenziali errate','auth/network-request-failed':'Nessuna connessione'}[x.code]||x.message)}}
+else{if(u.toLowerCase()==='admin')return E('Nome utente non disponibile');
+const role=$('#ar').value;let pid='';
+if(role==='giocatore'){const q=$('#asn').value.trim().toLowerCase();if(!q)return E('Inserisci il tuo cognome');const L=S.players.filter(x=>(x.last||x.name.split(' ')[0]).toLowerCase()===q);
+if(!L.length)return E('Cognome non trovato in Anagrafe: controlla di averlo scritto bene o chiedi all\'admin di inserirti');
+if(L.length>1){const ch=$('#apid');if(!ch){$('#apl').innerHTML='<select id=apid>'+L.map(x=>`<option value=${x.id}>${e(x.name)}${x.num?' · #'+e(x.num):''}</option>`).join('')+'</select>';return E('Ci sono più giocatori con questo cognome: scegli il tuo e premi di nuovo Registrati')}pid=ch.value}else pid=L[0].id}
+regName=u;regInfo={role,pid};const c=await auth.createUserWithEmailAndPassword(mail(u),p);await db.collection('users').doc(c.user.uid).set({u,d:today(),role,pid},{merge:true});me=u;myRole=role;myPid=pid;regName='';setTimeout(()=>{regInfo=null},5000)}
+tab='home';R()}catch(x){regName='';regInfo=null;E({'auth/email-already-in-use':'Nome utente non disponibile','auth/weak-password':'La password deve avere almeno 6 caratteri','auth/invalid-credential':'Credenziali errate','auth/user-not-found':'Credenziali errate','auth/wrong-password':'Credenziali errate','auth/network-request-failed':'Nessuna connessione'}[x.code]||x.message)}}
 function setMe(u){me=u;localStorage.setItem('osm_guest','1');tab='home';R()}
 function out(){localStorage.removeItem('osm_guest');localStorage.removeItem('osm_last');me='';tab='home';if(auth&&auth.currentUser)auth.signOut();else R()}
 /* CALENDARIO */
@@ -146,7 +151,7 @@ function uD(id){if(confirm('Rimuovere il profilo utente?'))db.collection('users'
 let tmpLogo=null;
 function vSet(){tmpLogo=null;M(`<h3>Impostazioni</h3><label>Nome società</label><input id=s1 value="${e(S.team.name)}"><label>Logo</label><input type=file accept="image/*" onchange="img(this,160,'png',d=>tmpLogo=d)"><button class=b onclick="S.team.name=$('#s1').value||S.team.name;if(tmpLogo)S.team.logo=tmpLogo;save();X();R()">Salva</button><hr>
 <label>Importa anagrafe da Excel (colonne: Nome, Cognome, Numero, Ruolo, Data di nascita)</label><input type=file accept=".xlsx,.xls,.csv" onchange="xl(this)"><hr>
-<button class="b g" onclick="mig()">☁️ Carica su Firebase i dati di questo dispositivo</button><br><br><div class=row><button class="b g" onclick="bk()">⬇ Backup dati</button><label class="b g" style="margin:0">⬆ Ripristina<input type=file hidden accept=".json" onchange="rs(this)"></label></div><br><button class="b g" onclick="X()">Chiudi</button>`)}
+<button class="b g" onclick="mig()">☁️ Carica su Firebase i dati di questo dispositivo</button><br><br><button class="b r" onclick="purge()">🗑 Elimina tutti gli utenti (tranne Admin)</button><br><br><div class=row><button class="b g" onclick="bk()">⬇ Backup dati</button><label class="b g" style="margin:0">⬆ Ripristina<input type=file hidden accept=".json" onchange="rs(this)"></label></div><br><button class="b g" onclick="X()">Chiudi</button>`)}
 const parseDob=v=>{if(v==null||v==='')return'';if(typeof v==='number')return new Date(Math.round((v-25569)*864e5)).toISOString().slice(0,10);const t=String(v).trim();let m=t.match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{4})$/);if(m)return`${m[3]}-${p2(m[2])}-${p2(m[1])}`;m=t.match(/^\d{4}-\d{2}-\d{2}/);return m?m[0]:''};
 const dobO=r=>{const d=parseDob(r['data di nascita']??r['data nascita']??r.nascita??r.dob);return d?{dob:d,year:d.slice(0,4)}:{}};
 function xl(inp){const f=inp.files[0];if(!f)return;const run=()=>{const r=new FileReader();r.onload=ev=>{const wb=XLSX.read(ev.target.result,{type:'array'}),rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);let n=0;
@@ -236,7 +241,7 @@ $('#app').innerHTML=`<header><div class=hl>${tab!=='home'?'<button onclick="tab=
 /* FIREBASE */
 const CFG=typeof FIREBASE_CONFIG!=='undefined'?FIREBASE_CONFIG:typeof firebaseConfig!=='undefined'?firebaseConfig:null;
 const FB_ERR=typeof firebase==='undefined'?'Libreria Firebase non caricata: controlla la connessione internet':!CFG?'File firebase-config.js non trovato o con errori: controlla che sia nella stessa cartella di index.html, che la variabile si chiami FIREBASE_CONFIG e che non ci siano righe import':(!CFG.apiKey||String(CFG.apiKey).startsWith('INCOLLA'))?'firebase-config.js contiene ancora i valori INCOLLA_QUI (oppure la versione caricata su GitHub non è quella modificata)':'',FB_OK=!FB_ERR;
-let db,auth,L={players:{},events:{},team:''},un=[],pend=false,regName='';
+let db,auth,L={players:{},events:{},team:''},un=[],pend=false,regName='',regInfo=null;
 const mail=u=>u.toLowerCase()+'@osm.local',busy=()=>$('#m').classList.contains('on')||/INPUT|SELECT|TEXTAREA/.test(document.activeElement?.tagName||''),dirty=()=>{busy()?pend=true:R()},er=x=>console.error(x);
 document.addEventListener('focusout',()=>setTimeout(()=>{if(pend&&!busy())R()},300));
 function vt(sn){S.votes={};sn.docs.forEach(d=>{const o=d.data();(S.votes[o.eid]??={})[o.user]=o.v});autoAvg();dirty()}
@@ -246,13 +251,16 @@ for(const c of ['players','events'])db.collection(c).onSnapshot(sn=>{S[c]=sn.doc
 db.collection('mvp').onSnapshot(sn=>{S.mvpv={};sn.docs.forEach(d=>{const o=d.data();(S.mvpv[o.eid]??={})[o.uid]=o.pid});dirty()},er);
 auth.onAuthStateChanged(async u=>{un.forEach(f=>f());un=[];if(!u){me=localStorage.getItem('osm_guest')?'guest':'';localStorage.removeItem('osm_last');myPh='';myRole='';myPid='';localStorage.removeItem('osm_ph');S.votes={};S.users=[];return R()}
 const A=u.email==='admin@osm.local';let d=null;try{d=await db.collection('users').doc(u.uid).get()}catch(x){}
-me=A?'Admin':regName||(d&&d.exists&&d.data().u)||u.email.split('@')[0];myPh=(d&&d.exists&&d.data().photo)||'';myPh?localStorage.setItem('osm_ph',myPh):localStorage.removeItem('osm_ph');const dd=d&&d.exists?d.data():{};myRole=dd.role||'';myPid=dd.pid||'';if(!A&&!myRole)setTimeout(askRole,300);
+me=A?'Admin':regName||(d&&d.exists&&d.data().u)||u.email.split('@')[0];myPh=(d&&d.exists&&d.data().photo)||'';myPh?localStorage.setItem('osm_ph',myPh):localStorage.removeItem('osm_ph');const dd=d&&d.exists?d.data():{};if(regInfo){myRole=regInfo.role;myPid=regInfo.pid}else{myRole=dd.role||'';myPid=dd.pid||''}if(!A&&!myRole)setTimeout(()=>{if(!myRole)askRole()},400);
 localStorage.setItem('osm_last',me);if(A)un.push(db.collection('votes').onSnapshot(vt,er),db.collection('users').onSnapshot(sn=>{S.users=sn.docs.map(d=>({id:d.id,...d.data()})).filter(x=>x.u);dirty()},er));
 else un.push(db.collection('votes').where('uid','==',u.uid).onSnapshot(vt,er));R()})}
 function syncA(){if(!db)return;const w=(c,id,o)=>db.collection(c).doc(id).set(o).catch(x=>alert('Errore salvataggio: '+x.message));
 for(const c of ['players','events']){for(const x of S[c]){const j=JSON.stringify(x);if(L[c][x.id]!==j){L[c][x.id]=j;w(c,x.id,JSON.parse(j))}}
 for(const id in L[c])if(!S[c].some(x=>x.id===id)){delete L[c][id];db.collection(c).doc(id).delete()}}
 const t=JSON.stringify(S.team);if(L.team!==t){L.team=t;w('meta','team',JSON.parse(t))}}
+async function purge(){if(me!=='Admin'||!auth.currentUser)return;if(!confirm('Eliminare TUTTI gli utenti registrati (tranne Admin) insieme ai loro voti e ai voti Man of the Match? Operazione irreversibile.'))return;if(!confirm('Ultima conferma: procedo con l\'eliminazione?'))return;
+try{const my=auth.currentUser.uid;let n=0;for(const c of ['users','votes','mvp']){const sn=await db.collection(c).get(),docs=sn.docs.filter(d=>!(c==='users'&&d.id===my));for(let i=0;i<docs.length;i+=400){const b=db.batch();docs.slice(i,i+400).forEach(d=>b.delete(d.ref));await b.commit()}if(c==='users')n=docs.length}
+X();alert('Eliminati '+n+' profili utente con i relativi voti.\n\nPer eliminare anche gli account di accesso: Firebase Console → Authentication → Utenti → seleziona tutti tranne admin@osm.local → Elimina account.')}catch(x){alert('Errore: '+x.message)}}
 function mig(){let o;try{o=JSON.parse(localStorage.getItem(K))}catch(x){}if(!o||!((o.players||[]).length||(o.events||[]).length))return alert('Nessun dato locale trovato su questo dispositivo');
 if(!confirm('I dati di questo dispositivo sostituiranno quelli online. Continuare?'))return;S.players=o.players||[];S.events=o.events||[];if(o.team)S.team=o.team;syncA();alert('Dati caricati su Firebase')}
 /* AGGIORNAMENTI */
