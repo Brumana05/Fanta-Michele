@@ -24,15 +24,16 @@ main h4{color:#8a6a00;border-bottom:2px solid #c99a1c;padding-bottom:3px}.auth h
 .dg{touch-action:none;cursor:grab;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}.rb{margin:0 -1px 0 1px;vertical-align:-2px}.gs{position:relative;display:inline-block;padding-top:7px;margin-right:2px}.gs svg{position:absolute;top:-1px;left:50%;transform:translateX(-50%)}
 .hm button.ins{background:#c99a1c;color:#fff;border-left-color:#8a6a00}
 .bdbar{background:linear-gradient(90deg,#c99a1c,#e6b830);color:#1b2333;text-align:center;padding:7px 10px;font-size:13px;font-weight:700}
+.bell{position:relative}.bell b{position:absolute;top:-6px;right:-6px;background:#e53935;color:#fff;border-radius:10px;font-size:10px;padding:1px 5px;flex:none}.nbar{background:#1e3a8a;color:#fff;text-align:center;padding:8px 10px;font-size:13px;cursor:pointer;border-bottom:3px solid #c99a1c}
 </style></head><body><div id="bn" style="display:none"></div><div id="app"></div><div id="m"></div>
 <script src="firebase-config.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script>
-const V='1.17',K='osm_v1',$=q=>document.querySelector(q),p2=n=>String(n).padStart(2,'0'),uid=()=>Math.random().toString(36).slice(2,9);
+const V='1.18',K='osm_v1',$=q=>document.querySelector(q),p2=n=>String(n).padStart(2,'0'),uid=()=>Math.random().toString(36).slice(2,9);
 const e=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const def=()=>({team:{name:'Oratorio San Michele',logo:''},players:[],events:[],users:[],votes:{},mvpv:{}});
+const def=()=>({team:{name:'Oratorio San Michele',logo:''},players:[],events:[],users:[],votes:{},mvpv:{},notices:[],rd:{},rdAll:{},rdOk:false});
 let S=def();
 const save=()=>{if(admin())syncA()};
 let me=localStorage.getItem('osm_last')||(localStorage.getItem('osm_guest')?'guest':''),tab='home',fe=null,fx=null,authMode='in';
@@ -45,7 +46,7 @@ const ROLES={P:'Portiere',D:'Difensore',C:'Centrocampista',A:'Attaccante'},RP={P
 function rowsOf(m){if(m==='4-3-1-2')return[['POR'],['Terz. sx','Dif. centr.','Dif. centr.','Terz. dx'],['Mezz. sx','Mediano','Mezz. dx'],['Trequart.'],['Att.','Att.']];
 const n=m.split('-').map(Number);return[['POR'],...n.map((k,i)=>Array(k).fill(i==0?'DIF':i==n.length-1?'ATT':'CEN'))]}
 const MESI=['Gennaio','Febbraio','Marzo','Aprile','Maggio','Giugno','Luglio','Agosto','Settembre','Ottobre','Novembre','Dicembre'];
-let myPh=localStorage.getItem('osm_ph')||'',myRole='',myPid='';
+let myPh=localStorage.getItem('osm_ph')||'',myRole='',myPid='',myOk=false;
 const played=(ev,id)=>ev.lineup?.slots.includes(id)||((ev.lineup?.bench||[]).includes(id)&&ev.stats?.[id]?.in);
 const HA=x=>x.ha==='casa'?'🏠 In casa':x.ha==='trasf'?'🚌 In trasferta':'';
 let cal={y:new Date().getFullYear(),m:new Date().getMonth(),d:today()};
@@ -148,7 +149,7 @@ function plS(id){const l=$('#p1').value.trim(),f=$('#p5').value.trim(),o={last:l
 function plD(id){if(confirm('Eliminare atleta?')){S.players=S.players.filter(x=>x.id!==id);save();R()}}
 function img(inp,sz,t,cb){const f=inp.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{const i=new Image();i.onload=()=>{const k=Math.min(1,sz/Math.max(i.width,i.height)),c=document.createElement('canvas');c.width=i.width*k;c.height=i.height*k;c.getContext('2d').drawImage(i,0,0,c.width,c.height);cb(c.toDataURL('image/'+t,.8))};i.src=r.result};r.readAsDataURL(f)}
 /* UTENTI */
-function vUsr(){return`<p><b>${S.users.length}</b> utenti registrati</p><p style="font-size:12px;color:#667">Le password sono protette da Firebase e non sono visibili. Per reimpostarle o eliminare un account usa Firebase Console → Authentication.</p>`+(S.users.sort((a,b)=>a.u.localeCompare(b.u)).map(u=>`<div class=card><b>${e(u.u)}</b> <button class="b r" style="float:right;padding:4px 8px" onclick="uD('${u.id}')">🗑</button><br><small>Iscritto il ${e(u.d||'')} · ${{genitore:'Genitore',giocatore:'Giocatore',staff:'Staff'}[u.role]||'ruolo non scelto'}${u.pid&&pl(u.pid)?' ('+e(pl(u.pid).name)+')':''}</small></div>`).join('')||msg('Nessun utente registrato'))}
+function vUsr(){return`<p><b>${S.users.length}</b> utenti registrati</p><p style="font-size:12px;color:#667">Le password sono protette da Firebase e non sono visibili. Per reimpostarle o eliminare un account usa Firebase Console → Authentication.</p>`+(S.users.sort((a,b)=>a.u.localeCompare(b.u)).map(u=>`<div class=card><b>${e(u.u)}</b> <button class="b r" style="float:right;padding:4px 8px" onclick="uD('${u.id}')">🗑</button><br><small>Iscritto il ${e(u.d||'')} · ${{genitore:'Genitore',giocatore:'Giocatore',staff:'Staff'}[u.role]||'ruolo non scelto'}${u.pid&&pl(u.pid)?' ('+e(pl(u.pid).name)+')':''}</small>${u.role==='staff'?`<br><button class="b ${u.staffOk?'g':''}" style="padding:4px 8px;margin-top:6px" onclick="stf('${u.id}',${!u.staffOk})">${u.staffOk?'✔ Staff abilitato · Revoca':'Abilita come Staff'}</button>`:''}</div>`).join('')||msg('Nessun utente registrato'))}
 async function uD(id){if(!confirm('Eliminare questo utente? Il suo nome utente tornerà disponibile e i suoi voti verranno cancellati.'))return;const x=S.users.find(y=>y.id===id);
 try{const b=db.batch();b.delete(db.collection('users').doc(id));if(x)b.delete(db.collection('usernames').doc(x.u.toLowerCase()));for(const c of ['votes','mvp'])(await db.collection(c).where('uid','==',id).get()).docs.forEach(d=>b.delete(d.ref));await b.commit()}catch(er){alert('Errore: '+er.message)}}
 /* IMPOSTAZIONI */
@@ -208,6 +209,25 @@ const bdList=()=>S.players.filter(isBd),nm=p=>((p.first||'')+' '+(p.last||'')).t
 function bdBar(){const L=bdList();return L.length?`<div class=bdbar>🎂 Oggi è il compleanno di ${L.map(p=>e(nm(p))+' ('+age(p)+' anni)').join(' e ')}! Tanti auguri! 🎉</div>`:''}
 function bdCheck(){if(!me||$('#m').classList.contains('on'))return;const L=bdList();if(!L.length||localStorage.getItem('osm_bd')===today())return;localStorage.setItem('osm_bd',today());
 M(`<div style="text-align:center"><div style="font-size:60px">🎂🎉</div><h3 style="color:#8a6a00">Tanti auguri!</h3>${L.map(p=>`${p.photo?`<img src="${p.photo}" style="width:110px;height:110px;border-radius:50%;object-fit:cover;border:4px solid #c99a1c">`:''}<p style="font-size:18px"><b>${e(nm(p))}</b><br>oggi compie ${age(p)} anni!</p>`).join('')}<p>Tutta la squadra Oratorio San Michele ${L.length>1?'vi fa':'ti fa'} i migliori auguri! 🥳⚽</p><button class=b onclick="X()">Grazie! 🎈</button></div>`)}
+const isMgr=()=>me==='Admin'||(myRole==='staff'&&myOk);
+const fdt=d=>new Date(d).toLocaleString('it-IT',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+const lseen=()=>{try{return JSON.parse(localStorage.getItem('osm_seen')||'[]')}catch(x){return[]}};
+const seen=id=>(me==='guest'||!auth||!auth.currentUser)?lseen().includes(id):!!S.rd[id];
+const unread=()=>(!me||(me!=='guest'&&!S.rdOk))?[]:(S.notices||[]).filter(n=>!seen(n.id));
+function rdWrite(L){if(!L.length)return;if(me==='guest'||!auth||!auth.currentUser){localStorage.setItem('osm_seen',JSON.stringify([...new Set([...lseen(),...L])]));return}
+const u=auth.currentUser.uid,b=db.batch();L.forEach(id=>{S.rd[id]=true;b.set(db.collection('reads').doc(id+'_'+u),{nid:id,uid:u,user:me,t:Date.now()})});b.commit().catch(er)}
+function markAll(){const L=unread();if(L.length){rdWrite(L.map(n=>n.id));R()}}
+function nBar(){const L=unread();if(!L.length||tab==='avv')return'';return`<div class=nbar onclick="tab='avv';R()">🔔 ${L.length===1?'<b>Nuovo avviso:</b> '+e(L[0].title):'<b>'+L.length+' nuovi avvisi</b> da leggere'} — tocca per aprire</div>`}
+function vAvv(){const L=S.notices||[];
+return(isMgr()?'<button class=b onclick="nF()">+ Nuovo avviso</button>':(myRole==='staff'?'<p style="font-size:12px;color:#8a6a00">Sei Staff: per scrivere avvisi serve l\'abilitazione dell\'admin.</p>':''))+(setTimeout(markAll,600),'')
++(L.map(n=>`<div class=card style="border-color:#c99a1c;margin-top:10px"><b style="font-size:16px">${e(n.title)}</b><br><small style="color:#667">${fdt(n.date)} · ${e(n.by||'')}</small><div style="white-space:pre-wrap;margin-top:6px">${e(n.text)}</div>${isMgr()?`<div class=row style="margin-top:8px"><button class="b g" onclick="nRd('${n.id}')">👁 Letto da ${Object.keys(S.rdAll[n.id]||{}).length}</button><button class="b g" onclick="nF('${n.id}')">✎</button><button class="b r" onclick="nD('${n.id}')">🗑</button></div>`:''}</div>`).join('')||msg('Nessun avviso al momento.'))}
+function nF(id){const n=(S.notices||[]).find(x=>x.id===id)||{title:'',text:''};M(`<h3>${id?'Modifica':'Nuovo'} avviso</h3><label>Titolo</label><input id=n1 value="${e(n.title)}"><label>Testo</label><textarea id=n2 rows=6 style="width:100%;padding:9px;border:1px solid #c8cfdd;border-radius:8px;font-size:15px;font-family:inherit">${e(n.text)}</textarea><div class=row><button class=b onclick="nS('${id||''}')">${id?'Salva':'Pubblica'}</button><button class="b g" onclick="X()">Annulla</button></div>`)}
+function nS(id){const t=$('#n1').value.trim(),x=$('#n2').value.trim();if(!t||!x)return alert('Inserisci titolo e testo');const c=db.collection('notices'),f=y=>alert('Errore: '+y.message+' (controlla le regole Firestore e l\'abilitazione Staff)');
+if(id)c.doc(id).set({title:t,text:x},{merge:true}).catch(f);else{const nid=uid();c.doc(nid).set({id:nid,title:t,text:x,date:new Date().toISOString(),by:me,uid:auth.currentUser.uid}).then(()=>rdWrite([nid])).catch(f)}X()}
+function nD(id){if(confirm('Eliminare questo avviso?'))db.collection('notices').doc(id).delete().catch(x=>alert('Errore: '+x.message))}
+function nRd(id){const n=S.notices.find(x=>x.id===id),rr=S.rdAll[id]||{},L=Object.entries(rr).sort((a,b)=>b[1].t-a[1].t),pend=admin()?S.users.filter(u=>!rr[u.id]):[];
+M(`<h3>👁 Chi ha letto</h3><p><b>${e(n.title)}</b></p><p>Letto da <b>${L.length}</b></p>${L.map(([u,r])=>`<div>✅ ${e(r.user)} <small style="color:#667">${fdt(r.t)}</small></div>`).join('')||'<small>Nessuno ancora</small>'}${pend.length?`<p style="margin-top:12px"><b>Non hanno ancora letto (${pend.length})</b></p>${pend.map(u=>`<div>⬜ ${e(u.u)}</div>`).join('')}`:''}<br><button class="b g" onclick="X()">Chiudi</button>`)}
+function stf(id,v){db.collection('users').doc(id).set({staffOk:v},{merge:true}).catch(x=>alert('Errore: '+x.message))}
 let dip=null;
 window.addEventListener('beforeinstallprompt',ev=>{ev.preventDefault();dip=ev});
 window.addEventListener('appinstalled',()=>{dip=null;R()});
@@ -239,9 +259,9 @@ function trT(d){const i=tr.sel.indexOf(d);i<0?tr.sel.push(d):tr.sel.splice(i,1);
 function trM(n){tr.m+=n;if(tr.m<0){tr.m=11;tr.y--}if(tr.m>11){tr.m=0;tr.y++}R()}
 function trAdd(){if(!tr.sel.length)return alert('Seleziona almeno un giorno');const t=tr.t||'18:00';let n=0;tr.sel.forEach(d=>{if(!S.events.some(x=>x.type==='all'&&x.date===d&&x.time===t)){S.events.push({id:uid(),type:'all',date:d,time:t,opp:'',place:tr.p});n++}});tr.sel=[];save();R();alert(n+' allenamenti aggiunti al calendario')}
 function R(){pend=false;if(!me){$('#app').innerHTML=vAuth();return}
-const T=[['cal','📅','Calendario'],['val','⭐',admin()?'Formazione':'Valutazioni'],['fanta','🏆','Fanta Michele'],['stat','📊','Statistiche'],['mvp','🥇','MVP'],['conv','📋','Convocazioni']];if(admin())T.push(['vot','📝','Valutazioni'],['trn','🏋️','Allenamenti'],['ana','👥','Anagrafe'],['usr','🔑','Utenti']);
-if(tab!=='home'&&!T.some(t=>t[0]===tab))tab='home';const views={cal:vCal,val:vVal,fanta:vFanta,stat:vStat,mvp:vMvp,conv:vConv,vot:vVot,trn:vTrn,ana:vAna,usr:vUsr},c=T.find(t=>t[0]===tab);
-$('#app').innerHTML=`<header><div class=hl>${tab!=='home'?'<button onclick="tab=\'home\';R()">‹ Home</button>':`<img src="${S.team.logo||'logo.png'}">`}</div><div class=ht><b>${e(S.team.name)}</b><small>v${V}${c?' · '+c[2]:''}</small></div><div class=hr>${admin()?'<button onclick="vSet()">⚙️</button>':''}${me==='guest'?'<button class=gold onclick="out()">Accedi</button>':`<a class=av onclick="prof()">${avatar(34)}</a>`}</div></header>${bdBar()}${(setTimeout(bdCheck,300),'')}<main>${tab==='home'?`<div class=hm>${T.map(t=>`<button onclick="tab='${t[0]}';R()"><span>${t[1]}</span>${t[2]}</button>`).join('')}${isApp()?'':`<button class=ins onclick="inst()"><span>📲</span>Aggiungi alla schermata Home</button>`}</div>`:views[tab]()}</main>`}
+const T=[['cal','📅','Calendario'],['avv','🔔','Avvisi / Comunicazioni'],['val','⭐',admin()?'Formazione':'Valutazioni'],['fanta','🏆','Fanta Michele'],['stat','📊','Statistiche'],['mvp','🥇','MVP'],['conv','📋','Convocazioni']];if(admin())T.push(['vot','📝','Valutazioni'],['trn','🏋️','Allenamenti'],['ana','👥','Anagrafe'],['usr','🔑','Utenti']);
+if(tab!=='home'&&!T.some(t=>t[0]===tab))tab='home';const views={cal:vCal,avv:vAvv,val:vVal,fanta:vFanta,stat:vStat,mvp:vMvp,conv:vConv,vot:vVot,trn:vTrn,ana:vAna,usr:vUsr},c=T.find(t=>t[0]===tab);
+$('#app').innerHTML=`<header><div class=hl>${tab!=='home'?'<button onclick="tab=\'home\';R()">‹ Home</button>':`<img src="${S.team.logo||'logo.png'}">`}</div><div class=ht><b>${e(S.team.name)}</b><small>v${V}${c?' · '+c[2]:''}</small></div><div class=hr><button class=bell onclick="tab='avv';R()">🔔${unread().length?`<b>${unread().length}</b>`:''}</button>${admin()?'<button onclick="vSet()">⚙️</button>':''}${me==='guest'?'<button class=gold onclick="out()">Accedi</button>':`<a class=av onclick="prof()">${avatar(34)}</a>`}</div></header>${nBar()}${bdBar()}${(setTimeout(bdCheck,300),'')}<main>${tab==='home'?`<div class=hm>${T.map(t=>`<button onclick="tab='${t[0]}';R()"><span>${t[1]}</span>${t[2]}</button>`).join('')}${isApp()?'':`<button class=ins onclick="inst()"><span>📲</span>Aggiungi alla schermata Home</button>`}</div>`:views[tab]()}</main>`}
 /* FIREBASE */
 const CFG=typeof FIREBASE_CONFIG!=='undefined'?FIREBASE_CONFIG:typeof firebaseConfig!=='undefined'?firebaseConfig:null;
 const FB_ERR=typeof firebase==='undefined'?'Libreria Firebase non caricata: controlla la connessione internet':!CFG?'File firebase-config.js non trovato o con errori: controlla che sia nella stessa cartella di index.html, che la variabile si chiami FIREBASE_CONFIG e che non ci siano righe import':(!CFG.apiKey||String(CFG.apiKey).startsWith('INCOLLA'))?'firebase-config.js contiene ancora i valori INCOLLA_QUI (oppure la versione caricata su GitHub non è quella modificata)':'',FB_OK=!FB_ERR;
@@ -253,11 +273,12 @@ function fbInit(){if(!FB_OK)return;firebase.initializeApp(CFG);db=firebase.fires
 db.collection('meta').doc('team').onSnapshot(d=>{if(d.exists){S.team=d.data();L.team=JSON.stringify(S.team)}dirty()},er);
 for(const c of ['players','events'])db.collection(c).onSnapshot(sn=>{S[c]=sn.docs.map(d=>d.data());L[c]={};S[c].forEach(x=>L[c][x.id]=JSON.stringify(x));if(c==='events')autoAvg();dirty()},er);
 db.collection('mvp').onSnapshot(sn=>{S.mvpv={};sn.docs.forEach(d=>{const o=d.data();(S.mvpv[o.eid]??={})[o.uid]=o.pid});dirty()},er);
-auth.onAuthStateChanged(async u=>{un.forEach(f=>f());un=[];if(!u){me=localStorage.getItem('osm_guest')?'guest':'';localStorage.removeItem('osm_last');myPh='';myRole='';myPid='';localStorage.removeItem('osm_ph');S.votes={};S.users=[];return R()}
+db.collection('notices').onSnapshot(sn=>{S.notices=sn.docs.map(d=>d.data()).sort((a,b)=>b.date.localeCompare(a.date));dirty()},er);
+auth.onAuthStateChanged(async u=>{un.forEach(f=>f());un=[];if(!u){me=localStorage.getItem('osm_guest')?'guest':'';localStorage.removeItem('osm_last');myPh='';myRole='';myPid='';myOk=false;S.rd={};S.rdAll={};S.rdOk=false;localStorage.removeItem('osm_ph');S.votes={};S.users=[];return R()}
 const A=u.email==='admin@osm.local';let d=null;try{d=await db.collection('users').doc(u.uid).get()}catch(x){}if(!A&&!regInfo&&!regName&&d&&!d.exists){auth.signOut();alert('Questo account è stato eliminato. Registrati di nuovo per usare l\'app.');return}
 me=A?'Admin':regName||(d&&d.exists&&d.data().u)||u.email.split('@')[0];myPh=(d&&d.exists&&d.data().photo)||'';myPh?localStorage.setItem('osm_ph',myPh):localStorage.removeItem('osm_ph');const dd=d&&d.exists?d.data():{};if(regInfo){myRole=regInfo.role;myPid=regInfo.pid}else{myRole=dd.role||'';myPid=dd.pid||''}if(!A&&!myRole)setTimeout(()=>{if(!myRole)askRole()},400);
 localStorage.setItem('osm_last',me);if(A)un.push(db.collection('votes').onSnapshot(vt,er),db.collection('users').onSnapshot(sn=>{S.users=sn.docs.map(d=>({id:d.id,...d.data()})).filter(x=>x.u);dirty()},er));
-else un.push(db.collection('votes').where('uid','==',u.uid).onSnapshot(vt,er));R()})}
+else un.push(db.collection('votes').where('uid','==',u.uid).onSnapshot(vt,er));myOk=!!dd.staffOk&&!regInfo;S.rd={};S.rdAll={};S.rdOk=false;const mg=A||(myRole==='staff'&&myOk);un.push((mg?db.collection('reads'):db.collection('reads').where('uid','==',u.uid)).onSnapshot(sn=>{S.rd={};S.rdAll={};sn.docs.forEach(d=>{const o=d.data();(S.rdAll[o.nid]??={})[o.uid]={user:o.user,t:o.t};if(o.uid===u.uid)S.rd[o.nid]=true});S.rdOk=true;dirty()},er));R()})}
 function syncA(){if(!db)return;const w=(c,id,o)=>db.collection(c).doc(id).set(o).catch(x=>alert('Errore salvataggio: '+x.message));
 for(const c of ['players','events']){for(const x of S[c]){const j=JSON.stringify(x);if(L[c][x.id]!==j){L[c][x.id]=j;w(c,x.id,JSON.parse(j))}}
 for(const id in L[c])if(!S[c].some(x=>x.id===id)){delete L[c][id];db.collection(c).doc(id).delete()}}
