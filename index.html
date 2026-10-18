@@ -54,7 +54,7 @@ main h4{color:#8a6a00;border-bottom:2px solid #c99a1c;padding-bottom:3px}.auth h
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script>
-const V='1.22',K='osm_v1',$=q=>document.querySelector(q),p2=n=>String(n).padStart(2,'0'),uid=()=>Math.random().toString(36).slice(2,9);
+const V='1.23',K='osm_v1',$=q=>document.querySelector(q),p2=n=>String(n).padStart(2,'0'),uid=()=>Math.random().toString(36).slice(2,9);
 const e=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const def=()=>({team:{name:'Oratorio San Michele',logo:''},players:[],events:[],users:[],votes:{},mvpv:{},notices:[],rd:{},rdAll:{},rdOk:false,claims:{}});
 let S=def();
@@ -254,16 +254,29 @@ async function uRoleS(id){const r=$('#ur').value,pid=r==='giocatore'?$('#urq').v
 if(r==='giocatore'&&S.claims[pid]&&S.claims[pid]!==id)return alert('Questo giocatore è già associato a un altro utente');
 try{const b=db.batch();if(u&&u.pid&&u.pid!==pid&&S.claims[u.pid]===id)b.delete(db.collection('claims').doc(u.pid));if(r==='giocatore')b.set(db.collection('claims').doc(pid),{uid:id});b.set(db.collection('users').doc(id),{role:r,pid},{merge:true});await b.commit();X()}catch(x){alert('Errore: '+x.message)}}
 function stf(id,v){db.collection('users').doc(id).set({staffOk:v},{merge:true}).catch(x=>alert('Errore: '+x.message))}
-function mvpSnd(){const AC=window.AudioContext||window.webkitAudioContext;let c=null,mu=localStorage.getItem('osm_mute')==='1';
-const ctx=()=>{if(!c&&AC){try{c=new AC()}catch(x){}}return c},run=()=>!!c&&c.state==='running',ok=()=>run()&&!mu;
-const tone=(f,t0,d,type,v,f2)=>{if(!ok())return;const t=c.currentTime+t0,o=c.createOscillator(),g=c.createGain();o.type=type||'sine';o.frequency.setValueAtTime(f,t);if(f2)o.frequency.exponentialRampToValueAtTime(f2,t+d);g.gain.setValueAtTime(.0001,t);g.gain.linearRampToValueAtTime(v||.1,t+.03);g.gain.exponentialRampToValueAtTime(.0001,t+d);o.connect(g);g.connect(c.destination);o.start(t);o.stop(t+d+.05)};
-const noise=(t0,d,v,hp)=>{if(!ok())return;const t=c.currentTime+t0,n=Math.floor(c.sampleRate*d),b=c.createBuffer(1,n,c.sampleRate),a=b.getChannelData(0);for(let i=0;i<n;i++)a[i]=Math.random()*2-1;const s=c.createBufferSource(),f=c.createBiquadFilter(),g=c.createGain();s.buffer=b;f.type='highpass';f.frequency.value=hp||1500;g.gain.setValueAtTime(v,t);g.gain.exponentialRampToValueAtTime(.0001,t+d);s.connect(f);f.connect(g);g.connect(c.destination);s.start(t)};
-return{ctx,on:()=>{ctx();return run()},muted:()=>mu,setMute:m=>{mu=m;localStorage.setItem('osm_mute',m?'1':'0')},resume:()=>{const k=ctx();return k?k.resume().catch(()=>{}):Promise.resolve()},close:()=>{try{c&&c.close()}catch(x){}},
-intro:()=>{tone(110,0,2.6,'sawtooth',.05,330);tone(220,0,2.6,'triangle',.06);tone(277,.1,2.5,'triangle',.05);tone(330,.2,2.4,'triangle',.05);noise(0,1.6,.05,3000)},
-gong:()=>{tone(196,0,2.4,'sine',.14);tone(294,0,2.4,'sine',.08);noise(0,.6,.05,800)},
-roll:d=>{for(let t=0,iv=.2;t<d;t+=iv,iv=Math.max(.035,iv*.93))noise(t,.09,.1+.12*(t/d),1800);for(let t=0;t<d;t+=.55)tone(65,t,.25,'sine',.28,38)},
-beep:k=>{tone(k===1?880:k===2?740:620,0,.3,'square',.07);tone(60,0,.35,'sine',.35,35)},
-win:()=>{noise(0,2,.3,2500);tone(75,0,1.2,'sine',.5,35);[523,659,784,1047].forEach((f,i)=>tone(f,.12+i*.13,i<3?.4:2,'sawtooth',.07));[523,659,784,1047].forEach(f=>tone(f,.7,2.2,'triangle',.05));[1568,2093,2637,3136].forEach((f,i)=>tone(f,.9+i*.15,.5,'sine',.03));[784,880,988,1047,988,1047,1175,1319].forEach((f,i)=>tone(f,2.2+i*.22,.3,'triangle',.06))}}}
+const MVP_DROP=11.4;
+function mvpSnd(){const AC=window.AudioContext||window.webkitAudioContext;let c=null,mu=localStorage.getItem('osm_mute')==='1',M0=null,gb=null,dst=null;
+const ctx=()=>{if(!c&&AC){try{c=new AC()}catch(x){}}return c},run=()=>!!c&&c.state==='running',
+out=()=>{if(!M0){M0=c.createGain();const k=c.createDynamicsCompressor();M0.connect(k);k.connect(c.destination)}M0.gain.value=mu?0:1;return M0},
+tone=(f,t0,d,type,v,f2,att)=>{if(!run())return;const t=c.currentTime+t0,o=c.createOscillator(),g=c.createGain();o.type=type||'sine';o.frequency.setValueAtTime(f,t);if(f2)o.frequency.exponentialRampToValueAtTime(f2,t+d);g.gain.setValueAtTime(.0001,t);g.gain.linearRampToValueAtTime(v||.1,t+Math.min(att||.03,d*.8));g.gain.exponentialRampToValueAtTime(.0001,t+d);o.connect(g);g.connect(dst||out());o.start(t);o.stop(t+d+.05)},
+noise=(t0,d,v,hp,sweep)=>{if(!run())return;const t=c.currentTime+t0,n=Math.floor(c.sampleRate*d),b=c.createBuffer(1,n,c.sampleRate),a=b.getChannelData(0);for(let i=0;i<n;i++)a[i]=Math.random()*2-1;const s=c.createBufferSource(),f=c.createBiquadFilter(),g=c.createGain();s.buffer=b;f.type='highpass';f.frequency.setValueAtTime(hp||1500,t);if(sweep)f.frequency.exponentialRampToValueAtTime(sweep,t+d);g.gain.setValueAtTime(sweep?.005:v,t);g.gain.exponentialRampToValueAtTime(sweep?v:.0001,t+d*.97);s.connect(f);f.connect(g);g.connect(dst||out());s.start(t)};
+const stopB=()=>{if(gb&&c){try{gb.gain.cancelScheduledValues(c.currentTime);gb.gain.setValueAtTime(Math.max(gb.gain.value,.0002),c.currentTime);gb.gain.linearRampToValueAtTime(.0001,c.currentTime+.15)}catch(x){}}gb=null};
+return{ctx,on:()=>{ctx();return run()},muted:()=>mu,setMute:m=>{mu=m;localStorage.setItem('osm_mute',m?'1':'0');if(M0)M0.gain.value=m?0:1},resume:()=>{const k=ctx();return k?k.resume().catch(()=>{}):Promise.resolve()},close:()=>{try{c&&c.close()}catch(x){}},stop:stopB,
+build(off){if(!run())return;off=off||0;stopB();gb=c.createGain();gb.connect(out());dst=gb;const E=11.1,at=(t,f)=>{if(t>=off)f(t-off)};
+at(0,r=>{[146.8,174.6,220,293.7].forEach(f=>tone(f,r,5.2,'triangle',.05,0,3.5));tone(73.4,r,5.2,'sine',.14,0,3)});
+noise(0,Math.max(.2,E-off),.2,300+(off/E)*3000,9000);
+for(let t=2.8;t<E;t+=t<8.7?.5:.25)at(t,r=>tone(62,r,.28,'sine',.45,36));
+const bs=[73.4,73.4,87.3,73.4,98,73.4,87.3,65.4];for(let j=0,t=2.8;t<E;j++,t+=.25)at(t,r=>tone(bs[j%8],r,.2,'sawtooth',.07));
+const sp=[293.7,349.2,440,523.3,587.3,698.5,880,1046.5,1174.7];for(let j=0,t=5.2;t<E;j++,t+=.125){const p=(t-5.2)/(E-5.2);at(t,r=>tone(sp[Math.min(8,Math.floor((j%8)*.6+p*4))],r,.11,'square',.02+.03*p))}
+for(let t=5.2,iv=.25;t<E;t+=iv,iv=Math.max(.04,iv*.9)){const p=(t-5.2)/(E-5.2);at(t,r=>noise(r,.1,.08+.14*p,1800))}
+[[8.7,620],[9.6,740],[10.5,880]].forEach(([t,f])=>at(t,r=>{tone(f,r,.3,'square',.07);tone(55,r,.5,'sine',.5,30);noise(r,.35,.12,3000)}));
+if(off<E+.2){gb.gain.setValueAtTime(1,c.currentTime+Math.max(0,E-off-.05));gb.gain.linearRampToValueAtTime(.0001,c.currentTime+Math.max(.01,E-off+.2))}dst=null},
+win(){if(!run())return;stopB();dst=null;noise(0,2.4,.35,2500);tone(75,0,1.6,'sine',.6,30);
+const P=[[293.7,370,440,587.3,73.4],[220,277.2,329.6,440,55],[246.9,293.7,370,493.9,61.7],[196,246.9,293.7,392,49],[293.7,370,440,587.3,73.4]];
+P.forEach((ch,b)=>{const t=b*2,d=b===4?2.8:1.9;ch.slice(0,4).forEach(f=>{tone(f,t,d,'sawtooth',.04,0,.02);tone(f*2,t,d,'triangle',.03)});tone(ch[4],t,d,'sawtooth',.11)});
+for(let t=.5;t<8;t+=.5){tone(62,t,.25,'sine',.4,36);noise(t+.25,.05,.05,7000)}
+[[740,0,.5],[880,.5,.5],[1174.7,1,1],[1108.7,2,.5],[880,2.5,.5],[659.3,3,1],[587.3,4,.5],[740,4.5,.5],[987.8,5,1],[880,6,.5],[784,6.5,.5],[740,7,1],[1174.7,8,2.6]].forEach(([f,t,d])=>{tone(f,t,d,'sawtooth',.055,0,.02);tone(f,t,d,'square',.015)});
+[1568,2093,2637,3136].forEach((f,i)=>tone(f,.3+i*.12,.6,'sine',.03))}}}
 function mvpAuto(){if(!me||$('#mv')||$('#m').classList.contains('on'))return;let sn=[];try{sn=JSON.parse(localStorage.getItem('osm_mvpseen')||'[]')}catch(x){}
 const lim=new Date(Date.now()-14*864e5).toISOString().slice(0,10),L=S.events.filter(x=>x.type!=='all'&&x.date<today()&&x.date>=lim&&mvpOf(x)&&!sn.includes(x.id)).sort((a,b)=>b.date.localeCompare(a.date));if(!L.length)return;
 localStorage.setItem('osm_mvpseen',JSON.stringify([...new Set([...sn,...L.map(x=>x.id)])]));mvpFilm(L[0].id)}
@@ -279,19 +292,20 @@ o.innerHTML=`<div class=beam></div><div class="beam b2"></div><button class=snd>
 <div class=sc id=s5><div class=flash></div><div class=gold style="font-size:15px">🏆 Man of the Match 🏆</div><div style="display:flex;gap:14px;flex-wrap:wrap;justify-content:center">${W.map(p=>`<div><div class=ph style="${p.photo?`background-image:url(${p.photo})`:''}${W.length>1?';width:min(40vw,190px)':''}">${p.photo?'':'👤'}</div><div class=nm style="margin-top:8px">${p.num?'#'+e(p.num)+' ':''}${e(nm(p))}</div><div style="color:#f0c75e;font-weight:800;font-size:17px">🏆 ${cnt(p.id)} ${cnt(p.id)===1?'volta':'volte'} Man of the Match</div></div>`).join('')}</div>
 <div style="opacity:.9">${m.man?"Scelto dall'admin":'⭐ '+m.n+' '+(m.n===1?'voto':'voti')+' dal pubblico'}</div><button class=b id=cl style="background:#c99a1c;color:#fff">Continua</button></div>`;
 document.body.appendChild(o);
-const A=mvpSnd();A.ctx();let cur=0;const sb=o.querySelector('.snd'),sfx={1:()=>A.intro(),2:()=>A.gong(),3:()=>A.roll(3.2),4:()=>{},5:()=>A.win()};
-const lab=()=>{const r=A.on();sb.className='snd'+(!A.muted()&&!r?' p':'');sb.textContent=A.muted()?'🔇 Audio spento':r?'🔊 Audio':'🔇 Tocca per attivare l\'audio'};
-const kick=()=>A.resume().then(()=>{lab();sfx[cur]&&sfx[cur]()});
+const A=mvpSnd();A.ctx();let cur=0,F=null,t0=performance.now();const sb=o.querySelector('.snd'),sfx={5:()=>{if(F){if(F.currentTime<MVP_DROP-1.5)F.currentTime=MVP_DROP}else A.win()}};
+const lab=()=>{const r=F?!F.paused:A.on();sb.className='snd'+(!A.muted()&&!r?' p':'');sb.textContent=A.muted()?'🔇 Audio spento':r?'🔊 Audio':'🔇 Tocca per attivare l\'audio'};
+const kick=()=>{if(F){F.muted=false;F.play().then(lab,lab)}else A.resume().then(()=>{lab();if(done)A.win();else if(cur&&cur<5)A.build((performance.now()-t0)/1000)})};
+const fileInit=()=>Promise.race([fetch('mvp-musica.mp3',{method:'HEAD',cache:'no-cache'}).then(r=>r.ok),new Promise(r=>setTimeout(()=>r(false),900))]).catch(()=>false).then(ok=>{if(ok){F=new Audio('mvp-musica.mp3');F.muted=A.muted()}});
 const T=[],at=(ms,f)=>T.push(setTimeout(f,ms)),sc=n=>{o.querySelectorAll('.sc').forEach(x=>x.classList.remove('on'));o.querySelector('#s'+n).classList.add('on');cur=n;sfx[n]&&sfx[n]()};let done=false;
-const end=()=>{T.forEach(clearTimeout);A.close();o.remove();R()};
+const end=()=>{T.forEach(clearTimeout);A.close();F&&F.pause();o.remove();R()};
 const confetti=()=>{const c=['#c99a1c','#f0c75e','#1e5bd8','#fff'];for(let i=0;i<80;i++){const d=document.createElement('i');d.className='cf';d.style.cssText=`left:${Math.random()*100}%;background:${c[i%4]};animation-duration:${2.5+Math.random()*3}s;animation-delay:${Math.random()*.8}s`;o.appendChild(d)}};
 const sk=o.querySelector('.skip'),reveal=()=>{if(done)return;done=true;T.forEach(clearTimeout);sc(5);o.querySelector('.flash').classList.add('on');confetti();sk.textContent='Chiudi ✕'};
-sk.onclick=()=>{const go=()=>done?end():reveal();if(!A.muted()&&!A.on())A.resume().then(go,go);else go()};o.querySelector('#cl').onclick=end;
-sb.onclick=()=>{if(A.muted()){A.setMute(false);kick()}else if(!A.on())kick();else A.setMute(true);lab()};
-o.addEventListener('click',ev=>{if(!ev.target.closest('button')&&!A.muted()&&!A.on())kick()});lab();
-sc(1);at(2800,()=>sc(2));
+sk.onclick=()=>{const go=()=>done?end():reveal();if(!A.muted()&&F&&F.paused)F.play().then(go,go);else if(!A.muted()&&!F&&!A.on())A.resume().then(go,go);else go()};o.querySelector('#cl').onclick=end;
+sb.onclick=()=>{if(A.muted()){A.setMute(false);F&&(F.muted=false);kick()}else if(!(F?!F.paused:A.on()))kick();else{A.setMute(true);F&&(F.muted=true)}lab()};
+o.addEventListener('click',ev=>{if(!ev.target.closest('button')&&!A.muted()&&!(F?!F.paused:A.on()))kick()});
+const start=()=>{t0=performance.now();if(F){F.currentTime=0;F.play().then(lab,lab)}else A.build(0);lab();sc(1);at(2800,()=>sc(2));
 at(5200,()=>{if(done)return;sc(3);let d=70,i=0;const sh=o.querySelector('#sh'),st=()=>{if(!o.isConnected||done)return;if(d>420){sh.textContent='???';return}sh.textContent=pool[i++%pool.length].toUpperCase();d*=1.13;T.push(setTimeout(st,d))};st()});
-at(8700,()=>{if(done)return;sc(4);const cd=o.querySelector('#cd'),n=k=>{cd.innerHTML='<span class=pl2>'+k+'</span>';A.beep(k)};n(3);at(900,()=>n(2));at(1800,()=>n(1));at(2700,reveal)})}
+at(8700,()=>{if(done)return;sc(4);const cd=o.querySelector('#cd'),n=k=>{cd.innerHTML='<span class=pl2>'+k+'</span>'};n(3);at(900,()=>n(2));at(1800,()=>n(1));at(2700,reveal)})};fileInit().then(start)}
 let dip=null;
 window.addEventListener('beforeinstallprompt',ev=>{ev.preventDefault();dip=ev});
 window.addEventListener('appinstalled',()=>{dip=null;R()});
