@@ -47,13 +47,14 @@ main h4{color:#8a6a00;border-bottom:2px solid #c99a1c;padding-bottom:3px}.auth h
 #mv .pl2{display:inline-block;font-size:34vmin;font-weight:900;color:#f0c75e;text-shadow:0 0 40px #c99a1c;animation:pl2 .8s}
 @keyframes pl2{from{transform:scale(2.4);opacity:0}to{transform:scale(1);opacity:1}}
 #mv .skip{position:absolute;top:calc(12px + env(safe-area-inset-top,0px));right:12px;background:#ffffff2e;color:#fff;border:0;border-radius:20px;padding:7px 14px;font-size:13px;z-index:3}
+#mv .snd{position:absolute;top:calc(12px + env(safe-area-inset-top,0px));left:12px;background:#ffffff2e;color:#fff;border:0;border-radius:20px;padding:7px 12px;font-size:13px;z-index:3}#mv .snd.p{background:#c99a1c;animation:pu 1.2s infinite alternate}@keyframes pu{to{transform:scale(1.07)}}
 </style></head><body><div id="bn" style="display:none"></div><div id="app"></div><div id="m"></div>
 <script src="firebase-config.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script>
-const V='1.21',K='osm_v1',$=q=>document.querySelector(q),p2=n=>String(n).padStart(2,'0'),uid=()=>Math.random().toString(36).slice(2,9);
+const V='1.22',K='osm_v1',$=q=>document.querySelector(q),p2=n=>String(n).padStart(2,'0'),uid=()=>Math.random().toString(36).slice(2,9);
 const e=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const def=()=>({team:{name:'Oratorio San Michele',logo:''},players:[],events:[],users:[],votes:{},mvpv:{},notices:[],rd:{},rdAll:{},rdOk:false,claims:{}});
 let S=def();
@@ -253,6 +254,16 @@ async function uRoleS(id){const r=$('#ur').value,pid=r==='giocatore'?$('#urq').v
 if(r==='giocatore'&&S.claims[pid]&&S.claims[pid]!==id)return alert('Questo giocatore è già associato a un altro utente');
 try{const b=db.batch();if(u&&u.pid&&u.pid!==pid&&S.claims[u.pid]===id)b.delete(db.collection('claims').doc(u.pid));if(r==='giocatore')b.set(db.collection('claims').doc(pid),{uid:id});b.set(db.collection('users').doc(id),{role:r,pid},{merge:true});await b.commit();X()}catch(x){alert('Errore: '+x.message)}}
 function stf(id,v){db.collection('users').doc(id).set({staffOk:v},{merge:true}).catch(x=>alert('Errore: '+x.message))}
+function mvpSnd(){const AC=window.AudioContext||window.webkitAudioContext;let c=null,mu=localStorage.getItem('osm_mute')==='1';
+const ctx=()=>{if(!c&&AC){try{c=new AC()}catch(x){}}return c},run=()=>!!c&&c.state==='running',ok=()=>run()&&!mu;
+const tone=(f,t0,d,type,v,f2)=>{if(!ok())return;const t=c.currentTime+t0,o=c.createOscillator(),g=c.createGain();o.type=type||'sine';o.frequency.setValueAtTime(f,t);if(f2)o.frequency.exponentialRampToValueAtTime(f2,t+d);g.gain.setValueAtTime(.0001,t);g.gain.linearRampToValueAtTime(v||.1,t+.03);g.gain.exponentialRampToValueAtTime(.0001,t+d);o.connect(g);g.connect(c.destination);o.start(t);o.stop(t+d+.05)};
+const noise=(t0,d,v,hp)=>{if(!ok())return;const t=c.currentTime+t0,n=Math.floor(c.sampleRate*d),b=c.createBuffer(1,n,c.sampleRate),a=b.getChannelData(0);for(let i=0;i<n;i++)a[i]=Math.random()*2-1;const s=c.createBufferSource(),f=c.createBiquadFilter(),g=c.createGain();s.buffer=b;f.type='highpass';f.frequency.value=hp||1500;g.gain.setValueAtTime(v,t);g.gain.exponentialRampToValueAtTime(.0001,t+d);s.connect(f);f.connect(g);g.connect(c.destination);s.start(t)};
+return{ctx,on:()=>{ctx();return run()},muted:()=>mu,setMute:m=>{mu=m;localStorage.setItem('osm_mute',m?'1':'0')},resume:()=>{const k=ctx();return k?k.resume().catch(()=>{}):Promise.resolve()},close:()=>{try{c&&c.close()}catch(x){}},
+intro:()=>{tone(110,0,2.6,'sawtooth',.05,330);tone(220,0,2.6,'triangle',.06);tone(277,.1,2.5,'triangle',.05);tone(330,.2,2.4,'triangle',.05);noise(0,1.6,.05,3000)},
+gong:()=>{tone(196,0,2.4,'sine',.14);tone(294,0,2.4,'sine',.08);noise(0,.6,.05,800)},
+roll:d=>{for(let t=0,iv=.2;t<d;t+=iv,iv=Math.max(.035,iv*.93))noise(t,.09,.1+.12*(t/d),1800);for(let t=0;t<d;t+=.55)tone(65,t,.25,'sine',.28,38)},
+beep:k=>{tone(k===1?880:k===2?740:620,0,.3,'square',.07);tone(60,0,.35,'sine',.35,35)},
+win:()=>{noise(0,2,.3,2500);tone(75,0,1.2,'sine',.5,35);[523,659,784,1047].forEach((f,i)=>tone(f,.12+i*.13,i<3?.4:2,'sawtooth',.07));[523,659,784,1047].forEach(f=>tone(f,.7,2.2,'triangle',.05));[1568,2093,2637,3136].forEach((f,i)=>tone(f,.9+i*.15,.5,'sine',.03));[784,880,988,1047,988,1047,1175,1319].forEach((f,i)=>tone(f,2.2+i*.22,.3,'triangle',.06))}}}
 function mvpAuto(){if(!me||$('#mv')||$('#m').classList.contains('on'))return;let sn=[];try{sn=JSON.parse(localStorage.getItem('osm_mvpseen')||'[]')}catch(x){}
 const lim=new Date(Date.now()-14*864e5).toISOString().slice(0,10),L=S.events.filter(x=>x.type!=='all'&&x.date<today()&&x.date>=lim&&mvpOf(x)&&!sn.includes(x.id)).sort((a,b)=>b.date.localeCompare(a.date));if(!L.length)return;
 localStorage.setItem('osm_mvpseen',JSON.stringify([...new Set([...sn,...L.map(x=>x.id)])]));mvpFilm(L[0].id)}
@@ -260,7 +271,7 @@ function mvpFilm(eid){const ev=S.events.find(x=>x.id===eid),m=ev&&mvpOf(ev);if(!
 const cnt=id=>S.events.filter(x=>{const q=mvpOf(x);return q&&q.ids.includes(id)}).length;
 let pool=ids(ev).map(pl).filter(Boolean).map(p=>p.last||p.name.split(' ')[0]);if(pool.length<4)pool=S.players.map(p=>p.last||p.name.split(' ')[0]);if(!pool.length)pool=['?'];pool=pool.sort(()=>Math.random()-.5);
 const o=document.createElement('div');o.id='mv';
-o.innerHTML=`<div class=beam></div><div class="beam b2"></div><button class=skip>Salta ⏭</button>
+o.innerHTML=`<div class=beam></div><div class="beam b2"></div><button class=snd></button><button class=skip>Salta ⏭</button>
 <div class=sc id=s1><img class=lg src="${S.team.logo||'logo.png'}"><div class=gold style="font-size:14px">San Michele Travagliato</div><div style="font-size:clamp(28px,9vw,50px);font-weight:900;line-height:1.1">MAN OF<br>THE MATCH</div><div style="opacity:.85">${TYPES[ev.type][0]} · ${ev.date.split('-').reverse().join('/')} vs ${e(ev.opp)}</div></div>
 <div class=sc id=s2><div style="font-size:60px">🏁</div><div class=nm>La giornata è finita</div><div style="opacity:.85;font-size:17px">Le votazioni sono chiuse.<br>Il pubblico ha scelto...</div></div>
 <div class=sc id=s3><div class=gold>E il Man of the Match è...</div><div class=shuf id=sh>?</div></div>
@@ -268,14 +279,19 @@ o.innerHTML=`<div class=beam></div><div class="beam b2"></div><button class=skip
 <div class=sc id=s5><div class=flash></div><div class=gold style="font-size:15px">🏆 Man of the Match 🏆</div><div style="display:flex;gap:14px;flex-wrap:wrap;justify-content:center">${W.map(p=>`<div><div class=ph style="${p.photo?`background-image:url(${p.photo})`:''}${W.length>1?';width:min(40vw,190px)':''}">${p.photo?'':'👤'}</div><div class=nm style="margin-top:8px">${p.num?'#'+e(p.num)+' ':''}${e(nm(p))}</div><div style="color:#f0c75e;font-weight:800;font-size:17px">🏆 ${cnt(p.id)} ${cnt(p.id)===1?'volta':'volte'} Man of the Match</div></div>`).join('')}</div>
 <div style="opacity:.9">${m.man?"Scelto dall'admin":'⭐ '+m.n+' '+(m.n===1?'voto':'voti')+' dal pubblico'}</div><button class=b id=cl style="background:#c99a1c;color:#fff">Continua</button></div>`;
 document.body.appendChild(o);
-const T=[],at=(ms,f)=>T.push(setTimeout(f,ms)),sc=n=>{o.querySelectorAll('.sc').forEach(x=>x.classList.remove('on'));o.querySelector('#s'+n).classList.add('on')};let done=false;
-const end=()=>{T.forEach(clearTimeout);o.remove();R()};
+const A=mvpSnd();A.ctx();let cur=0;const sb=o.querySelector('.snd'),sfx={1:()=>A.intro(),2:()=>A.gong(),3:()=>A.roll(3.2),4:()=>{},5:()=>A.win()};
+const lab=()=>{const r=A.on();sb.className='snd'+(!A.muted()&&!r?' p':'');sb.textContent=A.muted()?'🔇 Audio spento':r?'🔊 Audio':'🔇 Tocca per attivare l\'audio'};
+const kick=()=>A.resume().then(()=>{lab();sfx[cur]&&sfx[cur]()});
+const T=[],at=(ms,f)=>T.push(setTimeout(f,ms)),sc=n=>{o.querySelectorAll('.sc').forEach(x=>x.classList.remove('on'));o.querySelector('#s'+n).classList.add('on');cur=n;sfx[n]&&sfx[n]()};let done=false;
+const end=()=>{T.forEach(clearTimeout);A.close();o.remove();R()};
 const confetti=()=>{const c=['#c99a1c','#f0c75e','#1e5bd8','#fff'];for(let i=0;i<80;i++){const d=document.createElement('i');d.className='cf';d.style.cssText=`left:${Math.random()*100}%;background:${c[i%4]};animation-duration:${2.5+Math.random()*3}s;animation-delay:${Math.random()*.8}s`;o.appendChild(d)}};
 const sk=o.querySelector('.skip'),reveal=()=>{if(done)return;done=true;T.forEach(clearTimeout);sc(5);o.querySelector('.flash').classList.add('on');confetti();sk.textContent='Chiudi ✕'};
-sk.onclick=()=>done?end():reveal();o.querySelector('#cl').onclick=end;
+sk.onclick=()=>{const go=()=>done?end():reveal();if(!A.muted()&&!A.on())A.resume().then(go,go);else go()};o.querySelector('#cl').onclick=end;
+sb.onclick=()=>{if(A.muted()){A.setMute(false);kick()}else if(!A.on())kick();else A.setMute(true);lab()};
+o.addEventListener('click',ev=>{if(!ev.target.closest('button')&&!A.muted()&&!A.on())kick()});lab();
 sc(1);at(2800,()=>sc(2));
 at(5200,()=>{if(done)return;sc(3);let d=70,i=0;const sh=o.querySelector('#sh'),st=()=>{if(!o.isConnected||done)return;if(d>420){sh.textContent='???';return}sh.textContent=pool[i++%pool.length].toUpperCase();d*=1.13;T.push(setTimeout(st,d))};st()});
-at(8700,()=>{if(done)return;sc(4);const cd=o.querySelector('#cd'),n=k=>cd.innerHTML='<span class=pl2>'+k+'</span>';n(3);at(900,()=>n(2));at(1800,()=>n(1));at(2700,reveal)})}
+at(8700,()=>{if(done)return;sc(4);const cd=o.querySelector('#cd'),n=k=>{cd.innerHTML='<span class=pl2>'+k+'</span>';A.beep(k)};n(3);at(900,()=>n(2));at(1800,()=>n(1));at(2700,reveal)})}
 let dip=null;
 window.addEventListener('beforeinstallprompt',ev=>{ev.preventDefault();dip=ev});
 window.addEventListener('appinstalled',()=>{dip=null;R()});
