@@ -25,13 +25,35 @@ main h4{color:#8a6a00;border-bottom:2px solid #c99a1c;padding-bottom:3px}.auth h
 .hm button.ins{background:#c99a1c;color:#fff;border-left-color:#8a6a00}
 .bdbar{background:linear-gradient(90deg,#c99a1c,#e6b830);color:#1b2333;text-align:center;padding:7px 10px;font-size:13px;font-weight:700}
 .bell{position:relative}.bell b{position:absolute;top:-6px;right:-6px;background:#e53935;color:#fff;border-radius:10px;font-size:10px;padding:1px 5px;flex:none}.nbar{background:#1e3a8a;color:#fff;text-align:center;padding:8px 10px;font-size:13px;cursor:pointer;border-bottom:3px solid #c99a1c}
+#mv{position:fixed;inset:0;z-index:100;background:radial-gradient(circle at 50% 35%,#0f3a9e 0,#061a45 55%,#020a22 100%);color:#fff;text-align:center;overflow:hidden}
+#mv .beam{position:absolute;top:-20%;left:50%;width:30vmin;height:140%;background:linear-gradient(rgba(255,255,255,.28),transparent);transform-origin:top center;filter:blur(8px);animation:sw 4s ease-in-out infinite alternate}
+#mv .b2{animation-delay:-2s;background:linear-gradient(rgba(201,154,28,.4),transparent)}
+@keyframes sw{from{transform:translateX(-50%) rotate(-35deg)}to{transform:translateX(-50%) rotate(35deg)}}
+#mv .sc{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;padding:20px;gap:14px}
+#mv .sc.on{display:flex;animation:fi .6s}
+@keyframes fi{from{opacity:0;transform:scale(.92)}to{opacity:1;transform:none}}
+#mv .gold{color:#f0c75e;letter-spacing:4px;font-weight:800;text-transform:uppercase}
+#mv .lg{width:min(46vw,200px);animation:pop 1.2s ease-out,glow 2s infinite alternate}
+@keyframes pop{0%{transform:scale(.2) rotate(-90deg);opacity:0}100%{transform:none;opacity:1}}
+@keyframes glow{from{filter:drop-shadow(0 0 8px #c99a1c)}to{filter:drop-shadow(0 0 28px #f0c75e)}}
+#mv .shuf{font-size:clamp(26px,8vw,48px);font-weight:900;min-height:1.3em;text-shadow:0 0 18px #3b82f6}
+#mv .flash{position:fixed;inset:0;background:#fff;opacity:0;pointer-events:none}#mv .flash.on{animation:fl .9s}
+@keyframes fl{0%{opacity:1}100%{opacity:0}}
+#mv .ph{width:min(62vw,280px);aspect-ratio:3/4;border-radius:18px;border:5px solid #c99a1c;background:#12306f center/cover;box-shadow:0 0 40px #c99a1c88;display:flex;align-items:center;justify-content:center;font-size:90px;animation:rv 1s cubic-bezier(.2,1.4,.4,1)}
+@keyframes rv{from{transform:scale(.1) rotate(8deg);opacity:0}to{transform:none;opacity:1}}
+#mv .nm{font-size:clamp(24px,7vw,40px);font-weight:900}
+#mv .cf{position:absolute;top:-20px;width:10px;height:16px;animation:cfall linear forwards}
+@keyframes cfall{to{transform:translateY(115vh) rotate(720deg)}}
+#mv .pl2{display:inline-block;font-size:34vmin;font-weight:900;color:#f0c75e;text-shadow:0 0 40px #c99a1c;animation:pl2 .8s}
+@keyframes pl2{from{transform:scale(2.4);opacity:0}to{transform:scale(1);opacity:1}}
+#mv .skip{position:absolute;top:calc(12px + env(safe-area-inset-top,0px));right:12px;background:#ffffff2e;color:#fff;border:0;border-radius:20px;padding:7px 14px;font-size:13px;z-index:3}
 </style></head><body><div id="bn" style="display:none"></div><div id="app"></div><div id="m"></div>
 <script src="firebase-config.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script>
-const V='1.20',K='osm_v1',$=q=>document.querySelector(q),p2=n=>String(n).padStart(2,'0'),uid=()=>Math.random().toString(36).slice(2,9);
+const V='1.21',K='osm_v1',$=q=>document.querySelector(q),p2=n=>String(n).padStart(2,'0'),uid=()=>Math.random().toString(36).slice(2,9);
 const e=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const def=()=>({team:{name:'Oratorio San Michele',logo:''},players:[],events:[],users:[],votes:{},mvpv:{},notices:[],rd:{},rdAll:{},rdOk:false,claims:{}});
 let S=def();
@@ -183,7 +205,7 @@ function vMvp(){const evs=S.events.filter(x=>x.type!=='all').sort((a,b)=>b.date.
 done.forEach(r=>r.m.ids.forEach(id=>tot[id]=(tot[id]||0)+1));const lead=Object.entries(tot).sort((a,b)=>b[1]-a[1]),live=evs.filter(x=>x.date===today()&&S.mvpv?.[x.id]&&!x.mvpAdmin?.length),L=admin()?evs.filter(x=>x.date<=today()).map(ev=>({ev,m:mvpOf(ev)})):done;
 return(lead.length?`<h4>Classifica MVP</h4><div class=card style="border-color:#c99a1c">${lead.map(([id,n],i)=>`<div class=row><span style="width:22px">${i+1}.</span><span style="flex:1">${e(pl(id).name)}</span><b>🏆 ${n}</b></div>`).join('')}</div>`:'')
 +(live.length?`<h4>Votazione in corso</h4>`+live.map(ev=>`<div class=card><b>${TYPES[ev.type][0]} vs ${e(ev.opp)}</b><br><small>Il Man of the Match verrà proclamato a fine giornata.</small></div>${admin()?mvpBox(ev):''}`).join(''):'')
-+`<h4>Man of the Match per partita</h4>`+(L.map(({ev,m})=>`<div class=card style="border-color:${TYPES[ev.type][1]}"><b>${TYPES[ev.type][0]}</b> ${ev.date.split('-').reverse().join('/')} vs ${e(ev.opp)} ${HA(ev)}${m?m.ids.map(id=>{const p=pl(id);return`<div class=row style="margin-top:8px;cursor:pointer" onclick="gig('${ev.id}','${id}')"><span style="width:52px;height:52px;border-radius:50%;background:#e3e8f3 center/cover;display:inline-flex;align-items:center;justify-content:center;font-size:26px;border:2px solid #c99a1c;${p.photo?`background-image:url(${p.photo})`:''}">${p.photo?'':'👤'}</span><div style="flex:1"><b>${e(p.name)}</b><br><small>🏆 ${m.man?"✔ Scelto dall'admin":m.n+' '+(m.n===1?'voto':'voti')+(m.ids.length>1?' · ex aequo':'')}</small></div><span style="color:#8a6a00;font-size:12px">🔍 Gigantografia</span></div>`}).join(''):'<div style="margin-top:6px;color:#667">Nessun MVP proclamato</div>'}${admin()?`<div class=row style="margin-top:10px"><button class="b g" onclick="mvpE('${ev.id}')">✎ Modifica MVP</button>${m&&!ev.mvpAdmin?.length?`<button class=b onclick="mvpC('${ev.id}')">✔ Conferma</button>`:''}${ev.mvpAdmin?.length?`<button class="b g" onclick="mvpR('${ev.id}')">↺ Ripristina dai voti</button>`:''}</div>${mvpBox(ev)}`:''}</div>`).join('')||msg('Nessun Man of the Match ancora proclamato.'))}
++`<h4>Man of the Match per partita</h4>`+(L.map(({ev,m})=>`<div class=card style="border-color:${TYPES[ev.type][1]}"><b>${TYPES[ev.type][0]}</b> ${ev.date.split('-').reverse().join('/')} vs ${e(ev.opp)} ${HA(ev)}${m?m.ids.map(id=>{const p=pl(id);return`<div class=row style="margin-top:8px;cursor:pointer" onclick="gig('${ev.id}','${id}')"><span style="width:52px;height:52px;border-radius:50%;background:#e3e8f3 center/cover;display:inline-flex;align-items:center;justify-content:center;font-size:26px;border:2px solid #c99a1c;${p.photo?`background-image:url(${p.photo})`:''}">${p.photo?'':'👤'}</span><div style="flex:1"><b>${e(p.name)}</b><br><small>🏆 ${m.man?"✔ Scelto dall'admin":m.n+' '+(m.n===1?'voto':'voti')+(m.ids.length>1?' · ex aequo':'')}</small></div><span style="color:#8a6a00;font-size:12px">🔍 Gigantografia</span></div>`}).join(''):'<div style="margin-top:6px;color:#667">Nessun MVP proclamato</div>'}${m?`<button class="b g" style="margin-top:8px" onclick="mvpFilm('${ev.id}')">▶ Rivedi il video</button>`:''}${admin()?`<div class=row style="margin-top:10px"><button class="b g" onclick="mvpE('${ev.id}')">✎ Modifica MVP</button>${m&&!ev.mvpAdmin?.length?`<button class=b onclick="mvpC('${ev.id}')">✔ Conferma</button>`:''}${ev.mvpAdmin?.length?`<button class="b g" onclick="mvpR('${ev.id}')">↺ Ripristina dai voti</button>`:''}</div>${mvpBox(ev)}`:''}</div>`).join('')||msg('Nessun Man of the Match ancora proclamato.'))}
 function mvpE(eid){const ev=S.events.find(x=>x.id===eid),inM=new Set(ids(ev)),cu=ev.mvpAdmin?.length?ev.mvpAdmin:(mvpOf(ev)?.ids||[]),ps=[...S.players].sort((a,b)=>a.name.localeCompare(b.name));
 const mk=c=>{const o=p=>`<option value=${p.id} ${p.id===c?'selected':''}>${e(p.name)}</option>`;return'<option value="">— nessuno —</option>'+(inM.size?`<optgroup label="Giocatori della partita">${ps.filter(p=>inM.has(p.id)).map(o).join('')}</optgroup><optgroup label="Altri">${ps.filter(p=>!inM.has(p.id)).map(o).join('')}</optgroup>`:ps.map(o).join(''))};
 M(`<h3>🏆 Modifica Man of the Match</h3><p style="font-size:13px">${TYPES[ev.type][0]} ${ev.date.split('-').reverse().join('/')} vs ${e(ev.opp)}</p><label>Man of the Match</label><select id=mv1>${mk(cu[0]||'')}</select><label>Secondo MVP a pari merito (facoltativo)</label><select id=mv2>${mk(cu[1]||'')}</select><p style="font-size:12px;color:#667">Scegliendo "nessuno" nel primo campo si torna al risultato dei voti degli utenti.</p><div class=row><button class=b onclick="mvpS('${eid}')">Salva</button><button class="b g" onclick="X()">Annulla</button></div>`)}
@@ -205,7 +227,7 @@ async function setRole(r,pid){if(!auth||!auth.currentUser)return;const u0=auth.c
 const isBd=p=>{if(!p.dob)return false;const t=today().slice(5),b=p.dob.slice(5);if(b===t)return true;const y=+today().slice(0,4);return b==='02-29'&&t==='02-28'&&!((y%4==0&&y%100!=0)||y%400==0)};
 const bdList=()=>S.players.filter(isBd),nm=p=>((p.first||'')+' '+(p.last||'')).trim()||p.name,age=p=>+today().slice(0,4)-+p.dob.slice(0,4);
 function bdBar(){const L=bdList();return L.length?`<div class=bdbar>🎂 Oggi è il compleanno di ${L.map(p=>e(nm(p))+' ('+age(p)+' anni)').join(' e ')}! Tanti auguri! 🎉</div>`:''}
-function bdCheck(){if(!me||$('#m').classList.contains('on'))return;const L=bdList();if(!L.length||localStorage.getItem('osm_bd')===today())return;localStorage.setItem('osm_bd',today());
+function bdCheck(){if(!me||$('#mv')||$('#m').classList.contains('on'))return;const L=bdList();if(!L.length||localStorage.getItem('osm_bd')===today())return;localStorage.setItem('osm_bd',today());
 M(`<div style="text-align:center"><div style="font-size:60px">🎂🎉</div><h3 style="color:#8a6a00">Tanti auguri!</h3>${L.map(p=>`${p.photo?`<img src="${p.photo}" style="width:110px;height:110px;border-radius:50%;object-fit:cover;border:4px solid #c99a1c">`:''}<p style="font-size:18px"><b>${e(nm(p))}</b><br>oggi compie ${age(p)} anni!</p>`).join('')}<p>Tutta la squadra Oratorio San Michele ${L.length>1?'vi fa':'ti fa'} i migliori auguri! 🥳⚽</p><button class=b onclick="X()">Grazie! 🎈</button></div>`)}
 const isMgr=()=>me==='Admin'||myRole==='staff';
 const fdt=d=>new Date(d).toLocaleString('it-IT',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
@@ -231,6 +253,29 @@ async function uRoleS(id){const r=$('#ur').value,pid=r==='giocatore'?$('#urq').v
 if(r==='giocatore'&&S.claims[pid]&&S.claims[pid]!==id)return alert('Questo giocatore è già associato a un altro utente');
 try{const b=db.batch();if(u&&u.pid&&u.pid!==pid&&S.claims[u.pid]===id)b.delete(db.collection('claims').doc(u.pid));if(r==='giocatore')b.set(db.collection('claims').doc(pid),{uid:id});b.set(db.collection('users').doc(id),{role:r,pid},{merge:true});await b.commit();X()}catch(x){alert('Errore: '+x.message)}}
 function stf(id,v){db.collection('users').doc(id).set({staffOk:v},{merge:true}).catch(x=>alert('Errore: '+x.message))}
+function mvpAuto(){if(!me||$('#mv')||$('#m').classList.contains('on'))return;let sn=[];try{sn=JSON.parse(localStorage.getItem('osm_mvpseen')||'[]')}catch(x){}
+const lim=new Date(Date.now()-14*864e5).toISOString().slice(0,10),L=S.events.filter(x=>x.type!=='all'&&x.date<today()&&x.date>=lim&&mvpOf(x)&&!sn.includes(x.id)).sort((a,b)=>b.date.localeCompare(a.date));if(!L.length)return;
+localStorage.setItem('osm_mvpseen',JSON.stringify([...new Set([...sn,...L.map(x=>x.id)])]));mvpFilm(L[0].id)}
+function mvpFilm(eid){const ev=S.events.find(x=>x.id===eid),m=ev&&mvpOf(ev);if(!m)return;const W=m.ids.map(pl).filter(Boolean);if(!W.length)return;if($('#mv'))$('#mv').remove();
+const cnt=id=>S.events.filter(x=>{const q=mvpOf(x);return q&&q.ids.includes(id)}).length;
+let pool=ids(ev).map(pl).filter(Boolean).map(p=>p.last||p.name.split(' ')[0]);if(pool.length<4)pool=S.players.map(p=>p.last||p.name.split(' ')[0]);if(!pool.length)pool=['?'];pool=pool.sort(()=>Math.random()-.5);
+const o=document.createElement('div');o.id='mv';
+o.innerHTML=`<div class=beam></div><div class="beam b2"></div><button class=skip>Salta ⏭</button>
+<div class=sc id=s1><img class=lg src="${S.team.logo||'logo.png'}"><div class=gold style="font-size:14px">San Michele Travagliato</div><div style="font-size:clamp(28px,9vw,50px);font-weight:900;line-height:1.1">MAN OF<br>THE MATCH</div><div style="opacity:.85">${TYPES[ev.type][0]} · ${ev.date.split('-').reverse().join('/')} vs ${e(ev.opp)}</div></div>
+<div class=sc id=s2><div style="font-size:60px">🏁</div><div class=nm>La giornata è finita</div><div style="opacity:.85;font-size:17px">Le votazioni sono chiuse.<br>Il pubblico ha scelto...</div></div>
+<div class=sc id=s3><div class=gold>E il Man of the Match è...</div><div class=shuf id=sh>?</div></div>
+<div class=sc id=s4><div class=gold>Tra pochissimo...</div><div id=cd></div></div>
+<div class=sc id=s5><div class=flash></div><div class=gold style="font-size:15px">🏆 Man of the Match 🏆</div><div style="display:flex;gap:14px;flex-wrap:wrap;justify-content:center">${W.map(p=>`<div><div class=ph style="${p.photo?`background-image:url(${p.photo})`:''}${W.length>1?';width:min(40vw,190px)':''}">${p.photo?'':'👤'}</div><div class=nm style="margin-top:8px">${p.num?'#'+e(p.num)+' ':''}${e(nm(p))}</div><div style="color:#f0c75e;font-weight:800;font-size:17px">🏆 ${cnt(p.id)} ${cnt(p.id)===1?'volta':'volte'} Man of the Match</div></div>`).join('')}</div>
+<div style="opacity:.9">${m.man?"Scelto dall'admin":'⭐ '+m.n+' '+(m.n===1?'voto':'voti')+' dal pubblico'}</div><button class=b id=cl style="background:#c99a1c;color:#fff">Continua</button></div>`;
+document.body.appendChild(o);
+const T=[],at=(ms,f)=>T.push(setTimeout(f,ms)),sc=n=>{o.querySelectorAll('.sc').forEach(x=>x.classList.remove('on'));o.querySelector('#s'+n).classList.add('on')};let done=false;
+const end=()=>{T.forEach(clearTimeout);o.remove();R()};
+const confetti=()=>{const c=['#c99a1c','#f0c75e','#1e5bd8','#fff'];for(let i=0;i<80;i++){const d=document.createElement('i');d.className='cf';d.style.cssText=`left:${Math.random()*100}%;background:${c[i%4]};animation-duration:${2.5+Math.random()*3}s;animation-delay:${Math.random()*.8}s`;o.appendChild(d)}};
+const sk=o.querySelector('.skip'),reveal=()=>{if(done)return;done=true;T.forEach(clearTimeout);sc(5);o.querySelector('.flash').classList.add('on');confetti();sk.textContent='Chiudi ✕'};
+sk.onclick=()=>done?end():reveal();o.querySelector('#cl').onclick=end;
+sc(1);at(2800,()=>sc(2));
+at(5200,()=>{if(done)return;sc(3);let d=70,i=0;const sh=o.querySelector('#sh'),st=()=>{if(!o.isConnected||done)return;if(d>420){sh.textContent='???';return}sh.textContent=pool[i++%pool.length].toUpperCase();d*=1.13;T.push(setTimeout(st,d))};st()});
+at(8700,()=>{if(done)return;sc(4);const cd=o.querySelector('#cd'),n=k=>cd.innerHTML='<span class=pl2>'+k+'</span>';n(3);at(900,()=>n(2));at(1800,()=>n(1));at(2700,reveal)})}
 let dip=null;
 window.addEventListener('beforeinstallprompt',ev=>{ev.preventDefault();dip=ev});
 window.addEventListener('appinstalled',()=>{dip=null;R()});
@@ -264,7 +309,7 @@ function trAdd(){if(!tr.sel.length)return alert('Seleziona almeno un giorno');co
 function R(){pend=false;if(!me){$('#app').innerHTML=vAuth();return}
 const T=[['cal','📅','Calendario'],['avv','🔔','Avvisi / Comunicazioni'],['val','⭐',admin()?'Formazione':'Valutazioni'],['fanta','🏆','Fanta Michele'],['stat','📊','Statistiche'],['mvp','🥇','MVP'],['conv','📋','Convocazioni']];if(admin())T.push(['vot','📝','Valutazioni'],['trn','🏋️','Allenamenti'],['ana','👥','Anagrafe'],['usr','🔑','Utenti']);
 if(tab!=='home'&&!T.some(t=>t[0]===tab))tab='home';const views={cal:vCal,avv:vAvv,val:vVal,fanta:vFanta,stat:vStat,mvp:vMvp,conv:vConv,vot:vVot,trn:vTrn,ana:vAna,usr:vUsr},c=T.find(t=>t[0]===tab);
-$('#app').innerHTML=`<header><div class=hl>${tab!=='home'?'<button onclick="tab=\'home\';R()">‹ Home</button>':`<img src="${S.team.logo||'logo.png'}">`}</div><div class=ht><b>${e(S.team.name)}</b><small>v${V}${c?' · '+c[2]:''}</small></div><div class=hr><button class=bell onclick="tab='avv';R()">🔔${unread().length?`<b>${unread().length}</b>`:''}</button>${admin()?'<button onclick="vSet()">⚙️</button>':''}${me==='guest'?'<button class=gold onclick="out()">Accedi</button>':`<a class=av onclick="prof()">${avatar(34)}</a>`}</div></header>${nBar()}${bdBar()}${(setTimeout(bdCheck,300),'')}<main>${tab==='home'?`<div class=hm>${T.map(t=>`<button onclick="tab='${t[0]}';R()"><span>${t[1]}</span>${t[2]}</button>`).join('')}${isApp()?'':`<button class=ins onclick="inst()"><span>📲</span>Aggiungi alla schermata Home</button>`}</div>`:views[tab]()}</main>`}
+$('#app').innerHTML=`<header><div class=hl>${tab!=='home'?'<button onclick="tab=\'home\';R()">‹ Home</button>':`<img src="${S.team.logo||'logo.png'}">`}</div><div class=ht><b>${e(S.team.name)}</b><small>v${V}${c?' · '+c[2]:''}</small></div><div class=hr><button class=bell onclick="tab='avv';R()">🔔${unread().length?`<b>${unread().length}</b>`:''}</button>${admin()?'<button onclick="vSet()">⚙️</button>':''}${me==='guest'?'<button class=gold onclick="out()">Accedi</button>':`<a class=av onclick="prof()">${avatar(34)}</a>`}</div></header>${nBar()}${bdBar()}${(setTimeout(bdCheck,300),'')}${(setTimeout(mvpAuto,500),'')}<main>${tab==='home'?`<div class=hm>${T.map(t=>`<button onclick="tab='${t[0]}';R()"><span>${t[1]}</span>${t[2]}</button>`).join('')}${isApp()?'':`<button class=ins onclick="inst()"><span>📲</span>Aggiungi alla schermata Home</button>`}</div>`:views[tab]()}</main>`}
 /* FIREBASE */
 const CFG=typeof FIREBASE_CONFIG!=='undefined'?FIREBASE_CONFIG:typeof firebaseConfig!=='undefined'?firebaseConfig:null;
 const FB_ERR=typeof firebase==='undefined'?'Libreria Firebase non caricata: controlla la connessione internet':!CFG?'File firebase-config.js non trovato o con errori: controlla che sia nella stessa cartella di index.html, che la variabile si chiami FIREBASE_CONFIG e che non ci siano righe import':(!CFG.apiKey||String(CFG.apiKey).startsWith('INCOLLA'))?'firebase-config.js contiene ancora i valori INCOLLA_QUI (oppure la versione caricata su GitHub non è quella modificata)':'',FB_OK=!FB_ERR;
