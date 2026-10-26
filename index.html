@@ -52,8 +52,8 @@ main h4{color:#8a6a00;border-bottom:2px solid #c99a1c;padding-bottom:3px}.auth h
 .lvbox{position:relative}.lvs{position:absolute;top:2px;left:50%;transform:translateX(-50%);z-index:3;display:flex;align-items:center;gap:10px;background:rgba(6,26,69,.92);border:2px solid #c99a1c;border-radius:14px;padding:6px 12px;color:#fff;max-width:98%}
 .lvs img,.lvs .lgo{width:40px;height:40px;border-radius:50%;object-fit:contain;background:#fff;display:block;margin:auto}.lvs .sc2{text-align:center;min-width:76px}.lvs .sc2 b{font-size:26px;display:block;line-height:1.05}.lvs .sc2 small{color:#f0c75e;font-weight:800}
 .lvs .tn{font-size:9px;max-width:64px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:center}
-.lvw{perspective:900px;padding-top:66px;overflow:hidden}.lvp{position:relative;aspect-ratio:3/2;transform:rotateX(22deg);transform-origin:50% 100%;background:repeating-linear-gradient(90deg,#2f8f4c 0 10%,#277f40 10% 20%);border:3px solid #fff;border-radius:6px}.lvp svg{position:absolute;inset:0;width:100%;height:100%}
-.ld{position:absolute;transform:translate(-50%,-50%);width:64px;text-align:center;color:#fff;font-size:10px}.ld .c{width:34px;height:34px;border-radius:50%;background:#ffffff40 center/cover;margin:auto;display:flex;align-items:center;justify-content:center;border:2px solid #fff;font-size:16px}.ld em{display:block;font-style:normal;text-shadow:0 1px 2px #000}
+.lvw{perspective:900px;padding-top:66px;overflow:hidden}.lvp{position:relative;aspect-ratio:6/5;transform:rotateX(14deg);transform-origin:50% 100%;background:repeating-linear-gradient(90deg,#2f8f4c 0 10%,#277f40 10% 20%);border:3px solid #fff;border-radius:6px}.lvp svg{position:absolute;inset:0;width:100%;height:100%}
+.ld{position:absolute;transform:translate(-50%,-50%);width:clamp(60px,17vw,86px);text-align:center;color:#fff;font-size:clamp(10px,2.9vw,13px);font-weight:700;line-height:1.1}.ld .ic{position:absolute;top:-3px;white-space:nowrap;background:#0007;border-radius:9px;padding:0 3px;line-height:1.3;font-size:clamp(11px,3.1vw,15px)}.ld .ic:empty{display:none}.ld .ir{left:68%}.ld .il{right:68%}.ld .c{width:clamp(38px,11.5vw,58px);height:clamp(38px,11.5vw,58px);border-radius:50%;background:#ffffff40 center/cover;margin:auto;display:flex;align-items:center;justify-content:center;border:2px solid #fff;font-size:22px}.ld em{display:block;font-style:normal;text-shadow:0 1px 2px #000}
 .lvc .lcr{display:grid;grid-template-columns:1fr 46px 1fr;gap:4px;margin:6px 0;align-items:start}.lcm{text-align:center;font-weight:800;color:#8a6a00;font-size:13px;padding-top:8px}
 .lci{display:flex;gap:6px;align-items:center;background:#fff;border-radius:10px;padding:6px;font-size:12px;box-shadow:0 1px 3px #0001}.lcl .lci{flex-direction:row-reverse;text-align:right}
 .lva{width:30px;height:30px;border-radius:50%;background:#dfe5f2 center/cover;display:inline-flex;align-items:center;justify-content:center;flex:none;font-size:15px}
@@ -70,7 +70,7 @@ main h4{color:#8a6a00;border-bottom:2px solid #c99a1c;padding-bottom:3px}.auth h
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script>
-const V='1.25',K='osm_v1',$=q=>document.querySelector(q),p2=n=>String(n).padStart(2,'0'),uid=()=>Math.random().toString(36).slice(2,9);
+const V='1.27',K='osm_v1',$=q=>document.querySelector(q),p2=n=>String(n).padStart(2,'0'),uid=()=>Math.random().toString(36).slice(2,9);
 const e=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const def=()=>({team:{name:'Oratorio San Michele',logo:''},players:[],events:[],users:[],votes:{},mvpv:{},notices:[],rd:{},rdAll:{},rdOk:false,claims:{},live:{}});
 let S=def();
@@ -381,8 +381,8 @@ d.innerHTML=`<span style="font-size:30px">${D.ic}</span>${av(D.ph)}${av(D.ph2)}<
 function lvHead(ev,L){const home=ev.ha!=='trasf',us={lg:S.team.logo||'logo.png',n:S.team.name},op={lg:ev.oppLogo,n:ev.opp},A=home?us:op,B=home?op:us,c=lclk(L),lg=t=>t.lg?`<img src="${t.lg}">`:`<span class=lgo style="display:flex;align-items:center;justify-content:center;font-size:22px">🛡</span>`;
 return`<div class=lvs><div>${lg(A)}<div class=tn>${e(A.n||'')}</div></div><div class=sc2><b>${lvSc(ev,L)}</b><small id=lclk>${e(c.txt)}</small></div><div>${lg(B)}<div class=tn>${e(B.n||'')}</div></div></div>`}
 function lvPitch(ev,L){const rows=rowsOf(ev.lineup.mod),sl=lvSlots(ev,L),D=derive(ev,L),NR=rows.length;let o=0;
-const dots=rows.map((r,ri)=>{const x=9+ri*(82/Math.max(1,NR-1));return r.map((lb,j)=>{const k=o++,id=sl[k],p=pl(id),y=(j+1)/(r.length+1)*100,s=D[id]||{};
-return`<div class=ld style="left:${x}%;top:${y}%"><div class=c style="${p&&p.photo?`background-image:url(${p.photo})`:''}">${p&&p.photo?'':'👤'}</div><em>${p?e(p.last||p.name.split(' ')[0]):lb}</em><span class=ic>${p?icons(s,k===0):''}</span></div>`}).join('')}).join('');
+const dots=rows.map((r,ri)=>{const x=9+ri*(82/Math.max(1,NR-1));return r.map((lb,j)=>{const k=o++,id=sl[k],p=pl(id),y=8+(j+.5)/r.length*84,s=D[id]||{};
+return`<div class=ld style="left:${x}%;top:${y}%"><div class=c style="${p&&p.photo?`background-image:url(${p.photo})`:''}">${p&&p.photo?'':'👤'}</div><em>${p?e(p.last||p.name.split(' ')[0]):lb}</em><span class="ic ${x>70?'il':'ir'}">${p?icons(s,k===0):''}</span></div>`}).join('')}).join('');
 const svg=`<svg viewBox="0 0 150 100" preserveAspectRatio="none"><g fill=none stroke="#fff" stroke-width=".6" stroke-opacity=".85"><rect x=3 y=3 width=144 height=94 /><line x1=75 y1=3 x2=75 y2=97 /><circle cx=75 cy=50 r=11 /><rect x=3 y=24 width=22 height=52 /><rect x=3 y=38 width=8 height=24 /><rect x=125 y=24 width=22 height=52 /><rect x=139 y=38 width=8 height=24 /><path d="M25 41 A11 11 0 0 1 25 59" /><path d="M125 41 A11 11 0 0 0 125 59" /></g><circle cx=75 cy=50 r=1 fill="#fff"/></svg>`;
 return`<div class=lvbox>${lvHead(ev,L)}<div class=lvw><div class=lvp>${svg}${dots}</div></div></div>`}
 function lvCron(ev,L){const d=L.dur||35,E=Object.values(L.ev||{}).sort(lcmp),home=ev.ha!=='trasf',mg=isMgr();if(!E.length)return msg('Nessun evento ancora.');
@@ -398,14 +398,14 @@ const ev=evs.find(x=>x.id===lvE)||evs[0],L=S.live[ev.id],Ld=L||{st:'pre',dur:35,
 const sel=`<select onchange="lvE=this.value;R()">${evs.map(x=>`<option value=${x.id} ${x.id===ev.id?'selected':''}>${act(x)?'':'🔴 '}${x.date.split('-').reverse().join('/')} · vs ${e(x.opp)}</option>`).join('')}</select>`;
 if(!ev.lineup||!ev.lineup.slots.some(Boolean))return sel+msg('La formazione di questa partita non è ancora stata inserita.');
 const mg=isMgr();
-return sel+lvPitch(ev,Ld)+(Ld.video?`<button class=b style="width:100%;background:#c0392b;margin-top:8px" onclick="lvVid('${ev.id}')">🎥 Guarda live</button>`:'')
+return sel+lvPitch(ev,Ld)+(Ld.video?`<button class=b style="width:100%;background:#c0392b;margin-top:8px" onclick="lvVid('${ev.id}')">${/whatsapp|wa\.me/i.test(Ld.video)?'📲 Guarda live su WhatsApp':'🎥 Guarda live'}</button>`:'')
 +`<div class=lvt><button class="b ${lvT==='cron'?'':'g'}" onclick="lvT='cron';R()">📋 Cronaca</button><button class="b ${lvT==='form'?'':'g'}" onclick="lvT='form';R()">👕 Formazioni</button></div>`
 +(lvT==='cron'?lvCron(ev,Ld):lvForm(ev,Ld))+(mg?(L?lvCtl(ev,L):`<div class=card style="border-color:#c0392b"><b>🎛 Gestione live</b><br><button class=b style="margin-top:8px" onclick="lvNew('${ev.id}')">Prepara il live di questa partita</button></div>`):'')}
 function lvCtl(ev,L){const s=L.st,i=ev.id,B=(f,t,c)=>`<button class="b ${c||'g'}" onclick="${f}">${t}</button>`;
 return`<div class=card style="border-color:#c0392b"><b>🎛 Gestione live</b>${s==='pre'?`<div class=row style="margin:8px 0"><span>Durata di ogni tempo (min)</span><input type=number value=${L.dur||35} style="width:80px;margin:0" onchange="lvW('${i}',{dur:+this.value||35})"></div>`:''}
 <div class=row style="margin:8px 0">${s==='pre'?B(`lvSt('${i}','start1')`,'▶ Inizia partita','')+'':''}${s==='t1'?B(`lvSt('${i}','ht')`,'⏸ Intervallo',''):''}${s==='ht'?B(`lvSt('${i}','start2')`,'▶ Inizia 2° tempo',''):''}${s==='t2'?B(`lvSt('${i}','end')`,'🏁 Fine partita','r'):''}</div>
 ${s!=='pre'?`<div class=row>${B(`lvM('${i}','g')`,'⚽ Gol')}${B(`lvM('${i}','card')`,'🟨🟥 Cartellino')}${B(`lvM('${i}','sub')`,'🔄 Sostituzione')}${B(`lvM('${i}','pen')`,'🥅 Rigore')}</div>`:''}
-<div class=row style="margin-top:8px">${B(`lvM('${i}','c')`,'💬 Commento')}${L.video?B(`lvW('${i}',{video:''})`,'⏹ Termina diretta video','r'):B(`lvVidSet('${i}')`,'🎥 Avvia diretta video')}</div></div>`}
+<div class=row style="margin-top:8px">${B(`lvM('${i}','c')`,'💬 Commento')}${B(`lvWa('${i}')`,'📲 Avvisa su WhatsApp')}${L.video?B(`lvW('${i}',{video:''})`,'⏹ Termina diretta video','r'):B(`lvVidSet('${i}')`,'🎥 Avvia diretta video')}</div></div>`}
 function lvM(eid,kind,id){const ev=S.events.find(x=>x.id===eid),L=S.live[eid],q=(id&&L.ev[id])||{},c=lclk(L),mm=q.m!==undefined?q.m:c.m,po=(i,sel)=>{const p=pl(i);return p?`<option value=${p.id} ${i===sel?'selected':''}>${e(p.name)}</option>`:''};
 const ps=(sel,none)=>(none?'<option value="">— nessuno —</option>':'')+`<optgroup label="In campo">${lvOn(ev,L).map(i=>po(i,sel)).join('')}</optgroup><optgroup label="Panchina / altri">${lvAll(ev).filter(i=>!lvOn(ev,L).includes(i)).map(i=>po(i,sel)).join('')}</optgroup>`;
 const so=(arr,sel)=>arr.map(([v,t])=>`<option value="${v}" ${v===sel?'selected':''}>${t}</option>`).join('');
@@ -428,8 +428,14 @@ if(kind==='c'){const x=v('#lx').trim();if(!x)return alert('Scrivi il commento');
 const idn=id||uid();if(kind!=='c'){o.h=h;o.m=m}o.id=idn;o.ts=old?old.ts:Date.now();X();lvW(eid,{['ev.'+idn]:o})}
 function lvDel(eid,id){X();lvW(eid,{},[id])}
 function lvEd(eid,id){const q=S.live[eid].ev[id];lvM(eid,{g:'g',y:'card',r:'card',sub:'sub',pp:'pen',pm:'pen',c:'c'}[q.k],id)}
-function lvVidSet(eid){M(`<h3>🎥 Diretta video</h3><p style="font-size:13px">L'app non può trasmettere il video da sola. Avvia la diretta con l'app <b>YouTube</b> (Crea → Vai in diretta), Facebook o Instagram, poi incolla qui il link della diretta: da quel momento tutti vedranno il pulsante <b>Guarda live</b>.</p><input id=lv1 placeholder="https://youtube.com/live/..." inputmode=url><div class=row><button class=b onclick="const u=$('#lv1').value.trim();if(!/^https?:\\/\\//.test(u))return alert('Incolla un link valido');X();lvW('${eid}',{video:u})">Salva</button><button class="b g" onclick="X()">Annulla</button></div>`)}
-function lvVid(eid){const u=S.live[eid].video,m=u.match(/(?:youtu\.be\/|v=|\/live\/|\/embed\/|\/shorts\/)([\w-]{11})/);
+function lvVidSet(eid){M(`<h3>🎥 Diretta video</h3><p style="font-size:13px">L'app non trasmette il video da sola: lo avvii con un'altra app e poi incolli qui il link.</p>
+<p style="font-size:13px"><b>📲 WhatsApp</b> (fino a 32 persone): apri WhatsApp → <b>Chiamate</b> → <b>Crea link chiamata</b> → <b>Video</b>, copia il link e incollalo qui sotto. Chi tocca <b>Guarda live</b> entra nella videochiamata e vede la partita.</p>
+<p style="font-size:13px"><b>▶ YouTube</b> (spettatori illimitati): Crea → Vai in diretta, poi incolla il link.</p>
+<input id=lv1 placeholder="https://call.whatsapp.com/video/… oppure https://youtube.com/live/…" inputmode=url>
+<div class=row><button class=b onclick="lvVidS('${eid}')">Salva</button><button class="b g" onclick="X()">Annulla</button></div>`)}
+function lvVidS(eid){const u=$('#lv1').value.trim();if(!/^https?:\/\//.test(u))return alert('Incolla un link valido');X();lvW(eid,{video:u})}
+function lvWa(eid){const ev=S.events.find(x=>x.id===eid),L=S.live[eid]||{},t='🔴 LIVE! '+S.team.name+' – '+ev.opp+'\nSegui la partita in diretta nell\'app: '+location.href.split('#')[0].split('?')[0]+(L.video?'\n🎥 Guarda il video: '+L.video:'');window.open('https://wa.me/?text='+encodeURIComponent(t),'_blank','noopener')}
+function lvVid(eid){const u=S.live[eid].video;if(/whatsapp\.com|wa\.me/i.test(u)){window.open(u,'_blank','noopener');return}const m=u.match(/(?:youtu\.be\/|v=|\/live\/|\/embed\/|\/shorts\/)([\w-]{11})/);
 if(m){M(`<h3>🎥 Diretta</h3><iframe src="https://www.youtube.com/embed/${m[1]}?autoplay=1&playsinline=1" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen style="width:100%;aspect-ratio:16/9;border:0;border-radius:10px;background:#000"></iframe><p style="font-size:12px"><a href="${e(u)}" target="_blank" rel="noopener">Apri nell'app o nel browser</a></p><button class="b g" onclick="X();">Chiudi</button>`)}else window.open(u,'_blank','noopener')}
 let dip=null;
 window.addEventListener('beforeinstallprompt',ev=>{ev.preventDefault();dip=ev});
