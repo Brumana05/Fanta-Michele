@@ -41,13 +41,16 @@ service cloud.firestore {
       allow read: if true;
       allow create: if request.auth != null && request.resource.data.uid == request.auth.uid;
     }
+    match /drafts/{id} {
+      allow read, write: if isAdmin() || isStaff();
+    }
     match /live/{id} {
       allow read: if true;
       allow write: if isAdmin() || isStaff();
     }
     match /events/{id} {
       allow update: if isStaff()
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['stats']);
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['stats','lineup','lineupAt']);
     }
     match /mvp/{id} {
       allow read: if true;
