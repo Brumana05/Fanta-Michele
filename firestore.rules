@@ -47,6 +47,9 @@ service cloud.firestore {
     match /live/{id} {
       allow read: if true;
       allow write: if isAdmin() || isStaff();
+      allow update: if request.auth != null
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['vids'])
+        && request.resource.data.get('vids', {}).diff(resource.data.get('vids', {})).affectedKeys().hasOnly([request.auth.uid]);
     }
     match /events/{id} {
       allow update: if isStaff()
@@ -66,6 +69,12 @@ service cloud.firestore {
       allow update: if request.auth != null && (resource.data.from == request.auth.uid
         || (resource.data.status == 'open' && request.resource.data.status == 'accepted' && request.resource.data.by == request.auth.uid));
       allow delete: if request.auth != null && (isAdmin() || resource.data.from == request.auth.uid);
+    }
+    match /motm/{id} {
+      allow read: if true;
+      allow create, update: if request.auth != null
+        && request.resource.data.uid == request.auth.uid
+        && id == request.resource.data.ym + '_' + request.auth.uid;
     }
     match /mvp/{id} {
       allow read: if true;
