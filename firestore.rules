@@ -90,6 +90,10 @@ service cloud.firestore {
       allow update: if request.auth != null && request.auth.uid in resource.data.pu;
       allow delete: if isAdmin();
     }
+    match /staff/{id} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
     match /mvp/{id} {
       allow read: if true;
       allow create, update: if request.auth != null
